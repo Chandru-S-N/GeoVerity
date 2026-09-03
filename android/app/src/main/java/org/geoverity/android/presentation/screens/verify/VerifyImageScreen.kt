@@ -32,6 +32,7 @@ import org.geoverity.android.presentation.theme.*
 import java.io.File
 import java.io.FileOutputStream
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VerifyImageScreen(
     onNavigateBack: () -> Unit

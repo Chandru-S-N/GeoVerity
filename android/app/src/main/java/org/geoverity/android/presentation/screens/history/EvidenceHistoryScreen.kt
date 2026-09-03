@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import org.geoverity.android.GeoVerityApp
 import org.geoverity.android.presentation.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EvidenceHistoryScreen(
     onNavigateToDetails: (String) -> Unit,

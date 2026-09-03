@@ -24,6 +24,7 @@ import org.geoverity.android.GeoVerityApp
 import org.geoverity.android.offline.OfflineSyncWorker
 import org.geoverity.android.presentation.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OfflineCapturesScreen(
     onNavigateBack: () -> Unit

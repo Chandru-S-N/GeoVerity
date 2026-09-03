@@ -79,7 +79,7 @@ fun HomeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Shield,
-                                    contentContent = "Logo",
+                                    contentDescription = "Logo",
                                     tint = Color.White,
                                     modifier = Modifier.size(30.dp)
                                 )

@@ -24,6 +24,7 @@ import org.geoverity.android.data.db.EvidenceHistoryEntity
 import org.geoverity.android.presentation.theme.*
 import java.io.File
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EvidenceDetailsScreen(
     verificationId: String,
