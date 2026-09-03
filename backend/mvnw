@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+EXEC_DIR="$(dirname "$0")"
+WRAPPER_JAR="$EXEC_DIR/.mvn/wrapper/maven-wrapper.jar"
+
+if [ ! -f "$WRAPPER_JAR" ]; then
+    echo "Downloading Maven Wrapper Jar..."
+    curl -sLo "$WRAPPER_JAR" "https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar"
+fi
+
+exec java -jar "$WRAPPER_JAR" "$@"

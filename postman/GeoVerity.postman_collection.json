@@ -1,0 +1,192 @@
+{
+  "info": {
+    "name": "GeoVerity API Collection",
+    "description": "Postman test suite for GeoVerity - A Secure Geolocation & Image Authentication Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Time Authority",
+      "item": [
+        {
+          "name": "1. Obtain Trusted Server Time Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"dev_pixel8_gv_984128\",\n  \"clientTimestamp\": 1788440712000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/time/token",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "time", "token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Evidence Capture",
+      "item": [
+        {
+          "name": "2. Authenticate Online Capture",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verificationId\": \"SGA-82F4D2A7-C34E-4621-91AB-5369A18DF50E\",\n  \"timeToken\": \"{{timeToken}}\",\n  \"canonicalMetadata\": {\n    \"appVersion\": \"1.0.0\",\n    \"deviceId\": \"dev_pixel8_gv_984128\",\n    \"latitude\": 10.785234,\n    \"locationName\": \"Karur, Tamil Nadu, India\",\n    \"longitude\": 78.125432,\n    \"trustedTimestamp\": 1788440712000,\n    \"verificationId\": \"SGA-82F4D2A7-C34E-4621-91AB-5369A18DF50E\"\n  },\n  \"sha256Hash\": \"a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/capture",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "capture"]
+            }
+          }
+        },
+        {
+          "name": "3. Reconcile Offline Sync Capture",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-API-Key", "value": "{{apiKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verificationId\": \"SGA-LEGIT-OFFLINE-001\",\n  \"canonicalMetadata\": {\n    \"appVersion\": \"1.0.0\",\n    \"deviceId\": \"dev_pixel8_gv_984128\",\n    \"latitude\": 10.785234,\n    \"locationName\": \"Karur, Tamil Nadu, India\",\n    \"longitude\": 78.125432,\n    \"trustedTimestamp\": 1788444060000,\n    \"verificationId\": \"SGA-LEGIT-OFFLINE-001\"\n  },\n  \"sha256Hash\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"lastTrustedServerTimestamp\": 1788444000000,\n  \"lastTrustedElapsedRealtime\": 10000000,\n  \"captureElapsedRealtime\": 10060000,\n  \"deviceCaptureTime\": 1788444059500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/capture/offline-sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "capture", "offline-sync"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Third-Party Verification (No Login)",
+      "item": [
+        {
+          "name": "4. Verify Original Image File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "verify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Management",
+      "item": [
+        {
+          "name": "5. Create API Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Admin-Key", "value": "{{adminKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientName\": \"Forensic Mobile Fleet C\",\n  \"permissions\": \"CAPTURE,VERIFY,TIME_TOKEN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/api-clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "api-clients"]
+            }
+          }
+        },
+        {
+          "name": "6. List All API Clients",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Key", "value": "{{adminKey}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/api-clients",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "api-clients"]
+            }
+          }
+        },
+        {
+          "name": "7. Query Verification Records",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Key", "value": "{{adminKey}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/verification-records?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "verification-records"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "8. Query Security Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Key", "value": "{{adminKey}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/audit-logs?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "audit-logs"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "9. Query System Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Admin-Key", "value": "{{adminKey}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "stats"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "apiKey", "value": "gv_live_demo_android_app_key_2026_98a72" },
+    { "key": "adminKey", "value": "gv_admin_master_secret_key_884920" }
+  ]
+}

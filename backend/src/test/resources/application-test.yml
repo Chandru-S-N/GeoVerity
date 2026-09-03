@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:geoverity_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+
+geoverity:
+  security:
+    admin-api-key: gv_admin_test_secret_key
+    ecdsa-key-directory: ./target/test-keys
+    online-time-tolerance-ms: 5000
+    offline-max-time-deviation-ms: 120000
+    token-validity-seconds: 60

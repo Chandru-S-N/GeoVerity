@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  geoverity-db:
+    image: postgres:16-alpine
+    container_name: geoverity-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: geoverity
+      POSTGRES_USER: geoverity
+      POSTGRES_PASSWORD: geoverity_secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geoverity -d geoverity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  geoverity-redis:
+    image: redis:7-alpine
+    container_name: geoverity-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  geoverity-backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: geoverity-backend
+    restart: unless-stopped
+    depends_on:
+      geoverity-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://geoverity-db:5432/geoverity
+      DATABASE_USERNAME: geoverity
+      DATABASE_PASSWORD: geoverity_secure_password
+      ADMIN_API_KEY: gv_admin_master_secret_key_884920
+      ECDSA_KEY_DIR: /app/keys
+      SERVER_BASE_URL: http://localhost:8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - ecdsa_keys:/app/keys
+
+  geoverity-portal:
+    build:
+      context: ../verification-portal
+      dockerfile: ../docker/portal.Dockerfile
+    container_name: geoverity-portal
+    restart: unless-stopped
+    depends_on:
+      - geoverity-backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  redis_data:
+  ecdsa_keys:
