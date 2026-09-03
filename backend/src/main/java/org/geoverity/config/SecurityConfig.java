@@ -31,9 +31,12 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // 1. Third-party verification & public ping endpoints MUST NOT require login/auth
+                // 1. Third-party verification, QR generation, key generation & public ping endpoints
                 .requestMatchers(HttpMethod.POST, "/api/v1/verify").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/ping").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/records/*/qr").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/keys/generate").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/devices/**").permitAll()
                 
                 // 2. Swagger / OpenAPI / Actuator public endpoints
                 .requestMatchers(
@@ -47,7 +50,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
                 // 4. Capture & Time Token endpoints require authenticated API Key (or Admin)
-                .requestMatchers("/api/v1/time/**", "/api/v1/capture/**").hasAnyRole("CLIENT", "ADMIN")
+                .requestMatchers("/api/v1/time/**", "/api/v1/capture/**", "/api/v1/sync/**").hasAnyRole("CLIENT", "ADMIN")
 
                 .anyRequest().authenticated()
             )
@@ -61,7 +64,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("X-API-Key", "X-Admin-Key", "Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(Arrays.asList("X-API-Key", "X-Admin-Key", "Authorization", "Content-Type", "Accept", "X-API-Secret", "X-Request-Timestamp", "X-Signature"));
         configuration.setExposedHeaders(List.of("X-API-Key", "X-Admin-Key"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
