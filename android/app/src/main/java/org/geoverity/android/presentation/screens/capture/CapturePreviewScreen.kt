@@ -2,6 +2,7 @@ package org.geoverity.android.presentation.screens.capture
 
 import android.graphics.BitmapFactory
 import android.media.ExifInterface
+import android.os.Environment
 import android.os.SystemClock
 import androidx.compose.animation.*
 import androidx.compose.foundation.Image
@@ -63,23 +64,25 @@ fun CapturePreviewScreen(
 
     val verificationId = remember { "SGA-" + UUID.randomUUID().toString().uppercase() }
     var composedFinalBytes by remember { mutableStateOf<ByteArray?>(null) }
-    var authStepMessage by remember { mutableStateOf("Initializing cryptographic engine...") }
+    var authStepMessage by remember { mutableStateOf("Initializing cryptographic binding...") }
     var isProcessing by remember { mutableStateOf(true) }
+    var isSuccess by remember { mutableStateOf(false) }
+    var isOfflineMode by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Automatic Authentication Pipeline Triggered Immediately Upon Taking Image
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             try {
-                authStepMessage = "Composing evidence with detailed location & pincode..."
+                authStepMessage = "Composing evidence with detailed location & separate Date/Time..."
                 val rawBitmap = BitmapFactory.decodeFile(rawPhotoPath) ?: throw IllegalStateException("Failed to decode raw capture")
 
                 val api = RetrofitClient.getApi(secureStorage.getServerUrl())
                 val apiKey = secureStorage.getApiKey()
                 val deviceId = secureStorage.getDeviceId()
 
-                // Step 1: Obtain Trusted Authoritative Server Time Token
-                authStepMessage = "Obtaining authoritative server timestamp..."
+                // Step 1: Attempt to obtain Trusted Authoritative Server Time Token
+                authStepMessage = "Connecting to Server Authority for trusted time token..."
                 val timeRes = try {
                     api.getTimeToken(apiKey, TimeTokenRequestDto(deviceId, System.currentTimeMillis()))
                 } catch (e: Exception) {
@@ -87,11 +90,12 @@ fun CapturePreviewScreen(
                 }
 
                 if (timeRes != null && timeRes.isSuccessful && timeRes.body() != null) {
+                    // === ONLINE AUTHENTICATION PATH ===
                     val tokenBody = timeRes.body()!!
                     val trustedServerTime = tokenBody.serverTime
                     val timeToken = tokenBody.token
 
-                    // Update baseline for monotonic offline reconciliation
+                    // Save monotonic time baseline
                     secureStorage.saveTrustedTimeSync(trustedServerTime, SystemClock.elapsedRealtime())
 
                     // Step 2: Compose final image with separate Date and Time lines
@@ -107,7 +111,7 @@ fun CapturePreviewScreen(
                     composedFinalBytes = finalImageBytes
 
                     // Step 3: Serialize Canonical Metadata
-                    authStepMessage = "Serializing canonical metadata & binding composite SHA-256..."
+                    authStepMessage = "Binding composite SHA-256 (Image Bytes + Canonical Metadata)..."
                     val metadata = CanonicalMetadata(
                         appVersion = "1.0.0",
                         deviceId = deviceId,
@@ -123,7 +127,7 @@ fun CapturePreviewScreen(
                     val sha256 = Sha256Hasher.calculateCompositeHash(finalImageBytes, canonicalBytes)
 
                     // Step 5: Transmit to Backend for Server-Authority ECDSA P-256 Signing
-                    authStepMessage = "Requesting Server ECDSA P-256 digital signature..."
+                    authStepMessage = "Issuing Server ECDSA P-256 Digital Signature..."
                     val captureRes = api.authenticateCapture(
                         apiKey,
                         CaptureRequestDto(
@@ -143,23 +147,30 @@ fun CapturePreviewScreen(
                     )
 
                     if (captureRes.isSuccessful && captureRes.body()?.status == "AUTHENTICATED") {
-                        // Step 6: Save original authenticated image to local device storage (for Gallery)
-                        authStepMessage = "Saving image to local device storage..."
+                        // Step 6: Save original authenticated image to local device storage (FilesDir + Pictures)
+                        authStepMessage = "Storing authenticated JPEG in Local Device Gallery..."
                         val savedFile = File(context.filesDir, "$verificationId.jpg")
                         FileOutputStream(savedFile).use { it.write(finalImageBytes) }
 
-                        // Step 7: Inject Verification ID into standard EXIF headers as well
+                        // Secondary backup in External Pictures
+                        try {
+                            val picturesDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+                            if (picturesDir != null) {
+                                val externalFile = File(picturesDir, "$verificationId.jpg")
+                                FileOutputStream(externalFile).use { it.write(finalImageBytes) }
+                            }
+                        } catch (e: Exception) {}
+
+                        // Step 7: Inject Verification ID into standard EXIF headers
                         try {
                             val exif = ExifInterface(savedFile.absolutePath)
                             exif.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, "GeoVerity Authenticated Digital Evidence: $verificationId")
                             exif.setAttribute(ExifInterface.TAG_USER_COMMENT, "GEOVERITY_ID:$verificationId; LOCATION:$locationName; TRUSTED_EPOCH:$trustedServerTime")
                             exif.setAttribute(ExifInterface.TAG_DATETIME, SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).format(Date(trustedServerTime)))
                             exif.saveAttributes()
-                        } catch (e: Exception) {
-                            // EXIF tag injection is supplementary; COM marker and footer already embedded
-                        }
+                        } catch (e: Exception) {}
 
-                        // Step 8: Persist to Room Database
+                        // Step 8: Persist to Room Database for immediate local gallery display
                         db.evidenceHistoryDao().insert(
                             EvidenceHistoryEntity(
                                 verificationId = verificationId,
@@ -173,18 +184,40 @@ fun CapturePreviewScreen(
                             )
                         )
 
-                        authStepMessage = "Authentication Complete!"
+                        authStepMessage = "Digital Evidence Authenticated & Stored Locally!"
+                        isSuccess = true
+                        isProcessing = false
                         delay(600)
                         withContext(Dispatchers.Main) {
                             onAuthenticationComplete(verificationId)
                         }
                     } else {
-                        errorMessage = "Server rejected authentication: ${captureRes.errorBody()?.string()}"
+                        errorMessage = "Server rejected: ${captureRes.errorBody()?.string() ?: captureRes.message()}"
                         isProcessing = false
                     }
                 } else {
-                    // Fallback: Offline Temporary Storage with Keystore AES-256-GCM
-                    authStepMessage = "Offline Mode: Encrypting raw capture with Keystore AES-256-GCM..."
+                    // === OFFLINE / SERVER UNREACHABLE PATH ===
+                    // Server is currently unreachable (or testing on mobile without LAN IP configured).
+                    // Compose the local image with estimated/device time so the user ALWAYS has their local photo stored!
+                    isOfflineMode = true
+                    authStepMessage = "Server offline: Saving composed image locally & encrypting offline proof..."
+
+                    val localTime = System.currentTimeMillis()
+                    val finalImageBytes = ImageComposer.composeFinalImageBytes(
+                        photoBitmap = rawBitmap,
+                        locationName = locationName,
+                        latitude = latitude,
+                        longitude = longitude,
+                        trustedTimestamp = localTime,
+                        verificationId = verificationId
+                    )
+                    composedFinalBytes = finalImageBytes
+
+                    // 1. Save composed image immediately to local storage
+                    val savedFile = File(context.filesDir, "$verificationId.jpg")
+                    FileOutputStream(savedFile).use { it.write(finalImageBytes) }
+
+                    // 2. Encrypt raw photo bytes with Keystore AES-256-GCM for tamper-proof offline queue
                     val rawBytes = File(rawPhotoPath).readBytes()
                     val encryptedBytes = keyStoreManager.encrypt(rawBytes)
 
@@ -192,10 +225,10 @@ fun CapturePreviewScreen(
                         OfflineCaptureEntity(
                             verificationId = verificationId,
                             encryptedImageData = encryptedBytes,
-                            lastTrustedServerTimestamp = secureStorage.getLastTrustedServerTimestamp().takeIf { it > 0 } ?: System.currentTimeMillis(),
+                            lastTrustedServerTimestamp = secureStorage.getLastTrustedServerTimestamp().takeIf { it > 0 } ?: localTime,
                             lastTrustedElapsedRealtime = secureStorage.getLastTrustedElapsedRealtime().takeIf { it > 0 } ?: SystemClock.elapsedRealtime(),
                             captureElapsedRealtime = SystemClock.elapsedRealtime(),
-                            deviceCaptureTime = System.currentTimeMillis(),
+                            deviceCaptureTime = localTime,
                             locationName = locationName,
                             latitude = latitude,
                             longitude = longitude,
@@ -203,35 +236,83 @@ fun CapturePreviewScreen(
                         )
                     )
 
-                    authStepMessage = "Encrypted locally. Auto-sync will run when internet connects."
+                    // 3. ALSO Insert into EvidenceHistory so it IMMEDIATELY appears in Local Gallery!
+                    db.evidenceHistoryDao().insert(
+                        EvidenceHistoryEntity(
+                            verificationId = verificationId,
+                            sha256Hash = "PENDING_SERVER_SYNC",
+                            locationName = locationName,
+                            latitude = latitude,
+                            longitude = longitude,
+                            trustedTimestamp = localTime,
+                            signatureStatus = "PENDING_SYNC",
+                            localImagePath = savedFile.absolutePath
+                        )
+                    )
+
+                    authStepMessage = "Saved in Local Gallery! Auto-sync will sign when server connects."
+                    isSuccess = true
+                    isProcessing = false
                     delay(800)
                     withContext(Dispatchers.Main) {
                         onAuthenticationComplete(verificationId)
                     }
                 }
             } catch (e: Exception) {
-                // Offline fallback on network error
+                // Fail-safe offline fallback
                 try {
-                    val rawBytes = File(rawPhotoPath).readBytes()
-                    val encryptedBytes = keyStoreManager.encrypt(rawBytes)
-
-                    db.offlineCaptureDao().insert(
-                        OfflineCaptureEntity(
-                            verificationId = verificationId,
-                            encryptedImageData = encryptedBytes,
-                            lastTrustedServerTimestamp = secureStorage.getLastTrustedServerTimestamp().takeIf { it > 0 } ?: System.currentTimeMillis(),
-                            lastTrustedElapsedRealtime = secureStorage.getLastTrustedElapsedRealtime().takeIf { it > 0 } ?: SystemClock.elapsedRealtime(),
-                            captureElapsedRealtime = SystemClock.elapsedRealtime(),
-                            deviceCaptureTime = System.currentTimeMillis(),
+                    val localTime = System.currentTimeMillis()
+                    val rawBitmap = BitmapFactory.decodeFile(rawPhotoPath)
+                    if (rawBitmap != null) {
+                        val finalImageBytes = ImageComposer.composeFinalImageBytes(
+                            photoBitmap = rawBitmap,
                             locationName = locationName,
                             latitude = latitude,
                             longitude = longitude,
-                            status = "PENDING"
+                            trustedTimestamp = localTime,
+                            verificationId = verificationId
                         )
-                    )
-                    delay(800)
-                    withContext(Dispatchers.Main) {
-                        onAuthenticationComplete(verificationId)
+                        val savedFile = File(context.filesDir, "$verificationId.jpg")
+                        FileOutputStream(savedFile).use { it.write(finalImageBytes) }
+
+                        val rawBytes = File(rawPhotoPath).readBytes()
+                        val encryptedBytes = keyStoreManager.encrypt(rawBytes)
+
+                        db.offlineCaptureDao().insert(
+                            OfflineCaptureEntity(
+                                verificationId = verificationId,
+                                encryptedImageData = encryptedBytes,
+                                lastTrustedServerTimestamp = secureStorage.getLastTrustedServerTimestamp().takeIf { it > 0 } ?: localTime,
+                                lastTrustedElapsedRealtime = secureStorage.getLastTrustedElapsedRealtime().takeIf { it > 0 } ?: SystemClock.elapsedRealtime(),
+                                captureElapsedRealtime = SystemClock.elapsedRealtime(),
+                                deviceCaptureTime = localTime,
+                                locationName = locationName,
+                                latitude = latitude,
+                                longitude = longitude,
+                                status = "PENDING"
+                            )
+                        )
+
+                        db.evidenceHistoryDao().insert(
+                            EvidenceHistoryEntity(
+                                verificationId = verificationId,
+                                sha256Hash = "PENDING_SERVER_SYNC",
+                                locationName = locationName,
+                                latitude = latitude,
+                                longitude = longitude,
+                                trustedTimestamp = localTime,
+                                signatureStatus = "PENDING_SYNC",
+                                localImagePath = savedFile.absolutePath
+                            )
+                        )
+
+                        delay(800)
+                        withContext(Dispatchers.Main) {
+                            onAuthenticationComplete(verificationId)
+                        }
+                    } else {
+                        errorMessage = "Error: ${e.message}"
+                        isProcessing = false
                     }
                 } catch (ex: Exception) {
                     errorMessage = "Error during capture processing: ${e.message}"
@@ -244,7 +325,13 @@ fun CapturePreviewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Authenticating Evidence", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = if (isOfflineMode) "Local Evidence Stored" else "Authenticating Evidence",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -281,29 +368,34 @@ fun CapturePreviewScreen(
                     if (isProcessing) {
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
+                                .size(68.dp)
                                 .background(IndigoLight, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
                                 color = BrandPrimary,
-                                strokeWidth = 3.dp,
-                                modifier = Modifier.size(36.dp)
+                                strokeWidth = 3.5.dp,
+                                modifier = Modifier.size(38.dp)
                             )
                         }
                     } else if (errorMessage == null) {
                         Box(
                             modifier = Modifier
-                                .size(64.dp)
-                                .background(EmeraldLight, CircleShape),
+                                .size(68.dp)
+                                .background(if (isOfflineMode) AmberLight else EmeraldLight, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(36.dp))
+                            Icon(
+                                if (isOfflineMode) Icons.Default.CloudSync else Icons.Default.Check,
+                                contentDescription = null,
+                                tint = if (isOfflineMode) BrandAmber else BrandEmerald,
+                                modifier = Modifier.size(38.dp)
+                            )
                         }
                     }
 
                     Text(
-                        text = "Automatic Digital Authentication",
+                        text = if (isOfflineMode) "Evidence Stored in Local Gallery" else "Automatic Digital Authentication",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Slate900
@@ -372,8 +464,13 @@ fun CapturePreviewScreen(
                     }
 
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text(text = "Storage Target", style = MaterialTheme.typography.bodySmall, color = Slate500)
-                        Text(text = "Local Device Gallery (Server Stores Crypto Proof)", style = MaterialTheme.typography.bodySmall, color = BrandEmerald, fontWeight = FontWeight.Bold)
+                        Text(text = "Storage Status", style = MaterialTheme.typography.bodySmall, color = Slate500)
+                        Text(
+                            text = if (isOfflineMode) "Stored Locally (Pending Sync)" else "Stored Locally & Signed by Server",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isOfflineMode) BrandAmber else BrandEmerald,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

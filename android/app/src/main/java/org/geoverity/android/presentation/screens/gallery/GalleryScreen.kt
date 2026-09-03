@@ -3,6 +3,7 @@ package org.geoverity.android.presentation.screens.gallery
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Environment
 import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,6 +49,7 @@ import java.util.Locale
 @Composable
 fun GalleryScreen(
     onNavigateToViewer: (String) -> Unit,
+    onNavigateToCapture: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -57,9 +59,9 @@ fun GalleryScreen(
     val activeEvidence by db.evidenceHistoryDao().getActiveLocalEvidence().collectAsState(initial = emptyList())
     val pendingCaptures by db.offlineCaptureDao().getAllOfflineCaptures().collectAsState(initial = emptyList())
 
-    var selectedTab by remember { mutableStateOf(0) } // 0: Local Images, 1: Pending Offline
-    var evidenceToDelete by remember { mutableStateOf<EvidenceHistoryEntity?>(null) }
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Local Images, 1: Pending Offline
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var evidenceToDelete by remember { mutableStateOf<EvidenceHistoryEntity?>(null) }
 
     Scaffold(
         topBar = {
@@ -67,13 +69,13 @@ fun GalleryScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Captured Digital Evidence",
+                            text = "Local Evidence Gallery",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Slate900
                         )
                         Text(
-                            text = "${activeEvidence.size} stored on local device",
+                            text = "Stored on device • Cryptographically verifiable",
                             style = MaterialTheme.typography.labelSmall,
                             color = Slate500
                         )
@@ -82,6 +84,16 @@ fun GalleryScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = onNavigateToCapture,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .background(IndigoLight, CircleShape)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = "Capture", tint = BrandPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = WhiteBackground)
@@ -97,7 +109,7 @@ fun GalleryScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             
-            // Tab Selector (Clean White Card with Colorful Active Pills)
+            // Tab Selector (Clean White Card with Modern Colorful Active Pills)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -117,7 +129,7 @@ fun GalleryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Local Images (${activeEvidence.size})",
+                        text = "Local Gallery (${activeEvidence.size})",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (selectedTab == 0) Color.White else Slate600
@@ -135,7 +147,7 @@ fun GalleryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Pending Offline (${pendingCaptures.size})",
+                        text = "Pending Queue (${pendingCaptures.size})",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (selectedTab == 1) Color.White else Slate600
@@ -146,15 +158,59 @@ fun GalleryScreen(
             if (selectedTab == 0) {
                 if (activeEvidence.isEmpty()) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        Card(
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = WhiteBackground),
+                            border = CardDefaults.outlinedCardBorder(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp)
                         ) {
-                            Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, tint = Slate300, modifier = Modifier.size(56.dp))
-                            Text(text = "No images stored on device", style = MaterialTheme.typography.bodyMedium, color = Slate500)
+                            Column(
+                                modifier = Modifier.padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(72.dp)
+                                        .background(IndigoLight, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.PhotoLibrary,
+                                        contentDescription = null,
+                                        tint = BrandPrimary,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "No Evidence Photos Stored Yet",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Slate900
+                                )
+                                Text(
+                                    text = "Take a photograph using the GeoVerity Controlled Camera to capture cryptographically authenticated evidence.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Slate500,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                                Button(
+                                    onClick = onNavigateToCapture,
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                                ) {
+                                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Capture Digital Evidence", fontWeight = FontWeight.Bold)
+                                }
+                            }
                         }
                     }
                 } else {
@@ -168,23 +224,21 @@ fun GalleryScreen(
                                 evidence = item,
                                 onView = { onNavigateToViewer(item.verificationId) },
                                 onShare = {
-                                    item.localImagePath?.let { path ->
-                                        val file = File(path)
-                                        if (file.exists()) {
-                                            val uri = FileProvider.getUriForFile(
-                                                context,
-                                                "${context.packageName}.fileprovider",
-                                                file
-                                            )
-                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                                type = "image/jpeg"
-                                                putExtra(Intent.EXTRA_STREAM, uri)
-                                                putExtra(Intent.EXTRA_SUBJECT, "GeoVerity Evidence ${item.verificationId}")
-                                                putExtra(Intent.EXTRA_TEXT, "GeoVerity Authenticated Digital Evidence\nVerification ID: ${item.verificationId}\nLocation: ${item.locationName}\nGPS: ${item.latitude}, ${item.longitude}\n(Note: Share as Document/File to preserve exact cryptographic bytes).")
-                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                            }
-                                            context.startActivity(Intent.createChooser(shareIntent, "Share Original Evidence File"))
+                                    val file = resolveImageFile(context, item.localImagePath, item.verificationId)
+                                    if (file != null && file.exists()) {
+                                        val uri = FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.fileprovider",
+                                            file
+                                        )
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "image/jpeg"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            putExtra(Intent.EXTRA_SUBJECT, "GeoVerity Evidence ${item.verificationId}")
+                                            putExtra(Intent.EXTRA_TEXT, "GeoVerity Authenticated Digital Evidence\nVerification ID: ${item.verificationId}\nLocation: ${item.locationName}\nGPS: ${item.latitude}, ${item.longitude}\n(Note: Share as Document/File to preserve exact cryptographic bits).")
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
+                                        context.startActivity(Intent.createChooser(shareIntent, "Share Original Evidence File"))
                                     }
                                 },
                                 onDelete = {
@@ -199,15 +253,24 @@ fun GalleryScreen(
                 // Pending Offline Captures list
                 if (pendingCaptures.isEmpty()) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(Icons.Outlined.CloudDone, contentDescription = null, tint = Slate300, modifier = Modifier.size(56.dp))
-                            Text(text = "No pending offline captures. All synced!", style = MaterialTheme.typography.bodyMedium, color = Slate500)
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .background(EmeraldLight, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Outlined.CloudDone, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(32.dp))
+                            }
+                            Text(text = "All captures are fully synchronized with server authority!", style = MaterialTheme.typography.bodyMedium, color = Slate600)
                         }
                     }
                 } else {
@@ -257,46 +320,59 @@ fun GalleryScreen(
 
                                     Text(
                                         text = "📍 ${offline.locationName}",
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = Slate700
                                     )
 
-                                    Text(
-                                        text = "🔒 Encrypted with Keystore AES-256-GCM. Will automatically reconcile and authenticate when internet connects.",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Slate500
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Encrypted in Android Keystore",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = BrandIndigo,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(Date(offline.deviceCaptureTime)),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Slate500
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+
         }
     }
 
-    // Delete Confirmation Dialog (Explains local deletion semantics)
+    // Delete Confirmation Dialog (Explaining Device Only Deletion)
     if (showDeleteDialog && evidenceToDelete != null) {
         val item = evidenceToDelete!!
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
+            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = BrandRose, modifier = Modifier.size(32.dp)) },
             title = {
                 Text(
-                    text = "Delete Local Image?",
-                    style = MaterialTheme.typography.titleLarge,
+                    text = "Delete Local Photo?",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "This will permanently remove the physical image file from your mobile device storage.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "This will permanently delete the photograph file from your mobile device storage to free up space.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = Slate700
                     )
                     Text(
-                        text = "ℹ️ Note: The server's authoritative verification proof (ECDSA signature, SHA-256 hash, and audit log) remains intact and valid on the GeoVerity authority registry.",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "🔒 Security Note: The server's cryptographic verification record, SHA-256 hash, and ECDSA signature will remain permanently intact on the authority server.",
+                        style = MaterialTheme.typography.labelSmall,
                         color = BrandIndigo,
                         fontWeight = FontWeight.Medium
                     )
@@ -307,11 +383,9 @@ fun GalleryScreen(
                     onClick = {
                         coroutineScope.launch {
                             // 1. Delete physical JPEG file from storage
-                            item.localImagePath?.let { path ->
-                                val file = File(path)
-                                if (file.exists()) {
-                                    file.delete()
-                                }
+                            val file = resolveImageFile(context, item.localImagePath, item.verificationId)
+                            if (file != null && file.exists()) {
+                                file.delete()
                             }
                             // 2. Mark local deleted in Room DB
                             db.evidenceHistoryDao().markLocalDeleted(item.verificationId)
@@ -335,6 +409,22 @@ fun GalleryScreen(
     }
 }
 
+private fun resolveImageFile(context: android.content.Context, localImagePath: String?, verificationId: String): File? {
+    if (localImagePath != null) {
+        val f = File(localImagePath)
+        if (f.exists()) return f
+    }
+    val internalFile = File(context.filesDir, "$verificationId.jpg")
+    if (internalFile.exists()) return internalFile
+
+    val picturesDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    if (picturesDir != null) {
+        val externalFile = File(picturesDir, "$verificationId.jpg")
+        if (externalFile.exists()) return externalFile
+    }
+    return internalFile
+}
+
 @Composable
 private fun EvidenceImageCard(
     evidence: EvidenceHistoryEntity,
@@ -342,15 +432,15 @@ private fun EvidenceImageCard(
     onShare: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val context = LocalContext.current
     var loadedBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    val isPendingSync = evidence.signatureStatus == "PENDING_SYNC"
 
-    LaunchedEffect(evidence.localImagePath) {
+    LaunchedEffect(evidence.localImagePath, evidence.verificationId) {
         withContext(Dispatchers.IO) {
-            evidence.localImagePath?.let { path ->
-                val f = File(path)
-                if (f.exists()) {
-                    loadedBitmap = BitmapFactory.decodeFile(f.absolutePath)
-                }
+            val file = resolveImageFile(context, evidence.localImagePath, evidence.verificationId)
+            if (file != null && file.exists()) {
+                loadedBitmap = BitmapFactory.decodeFile(file.absolutePath)
             }
         }
     }
@@ -369,7 +459,7 @@ private fun EvidenceImageCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(210.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(Slate100)
                     .clickable { onView() },
@@ -382,23 +472,43 @@ private fun EvidenceImageCard(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
-                } ?: Icon(Icons.Outlined.Image, contentDescription = null, tint = Slate300, modifier = Modifier.size(40.dp))
+                } ?: Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Outlined.Image, contentDescription = null, tint = Slate400, modifier = Modifier.size(44.dp))
+                    Text(text = "Loading Local Image...", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                }
 
                 // Status Badge Overlay on top-right of image
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(10.dp)
-                        .background(EmeraldLight, RoundedCornerShape(50.dp))
-                        .border(1.dp, BrandEmerald.copy(alpha = 0.3f), RoundedCornerShape(50.dp))
+                        .background(if (isPendingSync) AmberLight else EmeraldLight, RoundedCornerShape(50.dp))
+                        .border(
+                            1.dp,
+                            if (isPendingSync) BrandAmber.copy(alpha = 0.4f) else BrandEmerald.copy(alpha = 0.4f),
+                            RoundedCornerShape(50.dp)
+                        )
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(Icons.Default.Verified, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(14.dp))
-                        Text(text = "AUTHENTICATED", style = MaterialTheme.typography.labelSmall, color = EmeraldDark, fontWeight = FontWeight.Bold)
+                        Icon(
+                            if (isPendingSync) Icons.Default.CloudSync else Icons.Default.Verified,
+                            contentDescription = null,
+                            tint = if (isPendingSync) BrandAmber else BrandEmerald,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = if (isPendingSync) "PENDING SYNC" else "AUTHENTICATED",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isPendingSync) AmberDark else EmeraldDark,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -454,7 +564,7 @@ private fun EvidenceImageCard(
                     onClick = onShare,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandEmerald)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandIndigo)
                 ) {
                     Icon(Icons.Outlined.Share, contentDescription = "Share", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -465,12 +575,9 @@ private fun EvidenceImageCard(
                 OutlinedButton(
                     onClick = onDelete,
                     shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandRose)
                 ) {
                     Icon(Icons.Outlined.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Delete", fontWeight = FontWeight.SemiBold)
                 }
             }
         }

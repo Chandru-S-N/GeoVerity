@@ -13,17 +13,29 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/verify")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "Third-Party Verification", description = "Public, zero-login endpoint for verifying digital photographic evidence")
 public class VerifyController {
 
     private final VerificationService verificationService;
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @GetMapping("/ping")
+    @Operation(summary = "Public server health ping", description = "Lightweight ping to verify connection with the GeoVerity Cryptographic Authority.")
+    public ResponseEntity<Map<String, Object>> ping() {
+        return ResponseEntity.ok(Map.of(
+            "status", "UP",
+            "service", "GeoVerity Cryptographic Authority",
+            "version", "1.0.0",
+            "timestamp", System.currentTimeMillis()
+        ));
+    }
+
+    @PostMapping(value = "/verify", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
         summary = "Verify original GeoVerity image",
         description = "Accepts ONLY the original image file. Extracts embedded Verification ID, verifies server ECDSA P-256 signature, and re-computes composite SHA-256 hash to prove absolute digital authenticity without login."

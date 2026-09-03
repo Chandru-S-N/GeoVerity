@@ -2,6 +2,7 @@ package org.geoverity.android.presentation.screens.gallery
 
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.os.Environment
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -52,11 +54,9 @@ fun ImageViewerScreen(
         withContext(Dispatchers.IO) {
             val rec = db.evidenceHistoryDao().getByVerificationId(verificationId)
             evidence = rec
-            rec?.localImagePath?.let { path ->
-                val f = File(path)
-                if (f.exists()) {
-                    loadedBitmap = BitmapFactory.decodeFile(f.absolutePath)
-                }
+            val file = resolveViewerImageFile(context, rec?.localImagePath, verificationId)
+            if (file != null && file.exists()) {
+                loadedBitmap = BitmapFactory.decodeFile(file.absolutePath)
             }
         }
     }
@@ -78,19 +78,17 @@ fun ImageViewerScreen(
                 actions = {
                     // Share Action
                     IconButton(onClick = {
-                        evidence?.localImagePath?.let { path ->
-                            val file = File(path)
-                            if (file.exists()) {
-                                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "image/jpeg"
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    putExtra(Intent.EXTRA_SUBJECT, "GeoVerity Evidence $verificationId")
-                                    putExtra(Intent.EXTRA_TEXT, "GeoVerity Authenticated Digital Evidence\nVerification ID: $verificationId\nLocation: ${evidence?.locationName}\n(Share as Document/File to preserve exact cryptographic bytes).")
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Original Evidence File"))
+                        val file = resolveViewerImageFile(context, evidence?.localImagePath, verificationId)
+                        if (file != null && file.exists()) {
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "image/jpeg"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                putExtra(Intent.EXTRA_SUBJECT, "GeoVerity Evidence $verificationId")
+                                putExtra(Intent.EXTRA_TEXT, "GeoVerity Authenticated Digital Evidence\nVerification ID: $verificationId\nLocation: ${evidence?.locationName}\n(Share as Document/File to preserve exact cryptographic bytes).")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Original Evidence File"))
                         }
                     }) {
                         Icon(Icons.Outlined.Share, contentDescription = "Share", tint = BrandEmerald)
@@ -110,69 +108,75 @@ fun ImageViewerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             
-            // 1. High-Resolution Image Card with Footer Display
-            loadedBitmap?.let { bmp ->
-                Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = WhiteBackground),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(4.dp, RoundedCornerShape(24.dp)),
-                    border = CardDefaults.outlinedCardBorder()
-                ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        Image(
-                            bitmap = bmp.asImageBitmap(),
-                            contentDescription = "Evidence Photo",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
-                        )
-                    }
-                }
-            } ?: Box(
+            // 1. Fullscreen Preview Card
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(300.dp)
-                    .background(Slate100, RoundedCornerShape(24.dp)),
-                contentAlignment = Alignment.Center
+                    .shadow(4.dp, RoundedCornerShape(24.dp)),
+                border = CardDefaults.outlinedCardBorder()
             ) {
-                CircularProgressIndicator(color = BrandPrimary)
+                Column(modifier = Modifier.padding(12.dp)) {
+                    loadedBitmap?.let { bmp ->
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = "Full High-Res Evidence",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                        )
+                    } ?: Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(260.dp)
+                            .background(Slate100, RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = BrandPrimary)
+                    }
+                }
             }
 
-            // 2. Comprehensive Cryptographic Proof Inspector
-            evidence?.let { item ->
+            // 2. Cryptographic Proof Specifications Drawer
+            evidence?.let { ev ->
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = WhiteBackground),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(2.dp, RoundedCornerShape(24.dp)),
+                    modifier = Modifier.fillMaxWidth(),
                     border = CardDefaults.outlinedCardBorder()
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "Authoritative Evidence Specifications",
+                            text = "Authoritative Cryptographic Proof",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Slate900
                         )
 
-                        SpecRow("Verification ID", item.verificationId, BrandIndigo)
-                        SpecRow("Detailed Location & Pincode", item.locationName, Slate900)
-                        SpecRow("GPS Coordinates", String.format(Locale.US, "%.6f, %.6f", item.latitude, item.longitude), Slate700)
-                        SpecRow("Trusted Timestamp", SimpleDateFormat("dd MMM yyyy, hh:mm:ss a (z)", Locale.US).format(Date(item.trustedTimestamp)), Slate700)
-                        SpecRow("Composite SHA-256 Hash", item.sha256Hash, Slate900)
-                        SpecRow("Server ECDSA Signature", "VALID (NIST P-256 Authority)", BrandEmerald)
-                        SpecRow("Device Storage Status", if (item.localImagePath != null) "Stored on Local Phone" else "Deleted from Local Device (Retained on Server)", Slate700)
+                        HorizontalDivider(color = Slate100)
+
+                        ProofField(label = "Verification ID", value = ev.verificationId, isMonospace = true, isHighlighted = true)
+                        ProofField(label = "Detailed Location", value = ev.locationName)
+                        ProofField(label = "GPS Coordinates", value = String.format(Locale.US, "%.6f, %.6f", ev.latitude, ev.longitude))
+                        ProofField(
+                            label = "Authoritative Timestamp",
+                            value = SimpleDateFormat("dd MMMM yyyy, hh:mm:ss a (z)", Locale.US).format(Date(ev.trustedTimestamp))
+                        )
+                        ProofField(label = "Composite SHA-256", value = ev.sha256Hash, isMonospace = true)
+                        ProofField(
+                            label = "Digital Signature Status",
+                            value = if (ev.signatureStatus == "VALID") "VALID (ECDSA NIST P-256 Verified)" else "PENDING_SYNC (Offline Queue)",
+                            isSuccess = ev.signatureStatus == "VALID"
+                        )
                     }
                 }
             }
@@ -183,25 +187,40 @@ fun ImageViewerScreen(
 
     // Delete Confirmation Dialog
     if (showDeleteDialog && evidence != null) {
-        val item = evidence!!
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Image from Phone?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
+            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = BrandRose, modifier = Modifier.size(32.dp)) },
+            title = {
+                Text(
+                    text = "Delete Local Photograph?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("The physical photo will be deleted from your mobile phone memory.", color = Slate700)
-                    Text("ℹ️ The server's cryptographic proof, hash, and signature remain permanently valid in the registry.", color = BrandIndigo, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = "This will delete the high-resolution photograph file from your mobile device memory.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Slate700
+                    )
+                    Text(
+                        text = "The server's authoritative cryptographic proof, SHA-256 composite hash, and ECDSA signature will remain permanently intact on the authority server.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = BrandIndigo,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            item.localImagePath?.let { path ->
-                                val f = File(path)
-                                if (f.exists()) f.delete()
+                            val file = resolveViewerImageFile(context, evidence?.localImagePath, verificationId)
+                            if (file != null && file.exists()) {
+                                file.delete()
                             }
-                            db.evidenceHistoryDao().markLocalDeleted(item.verificationId)
+                            db.evidenceHistoryDao().markLocalDeleted(verificationId)
                             showDeleteDialog = false
                             onNavigateBack()
                         }
@@ -222,10 +241,42 @@ fun ImageViewerScreen(
     }
 }
 
+private fun resolveViewerImageFile(context: android.content.Context, localImagePath: String?, verificationId: String): File? {
+    if (localImagePath != null) {
+        val f = File(localImagePath)
+        if (f.exists()) return f
+    }
+    val internalFile = File(context.filesDir, "$verificationId.jpg")
+    if (internalFile.exists()) return internalFile
+
+    val picturesDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    if (picturesDir != null) {
+        val externalFile = File(picturesDir, "$verificationId.jpg")
+        if (externalFile.exists()) return externalFile
+    }
+    return internalFile
+}
+
 @Composable
-private fun SpecRow(label: String, value: String, valueColor: Color) {
+private fun ProofField(
+    label: String,
+    value: String,
+    isMonospace: Boolean = false,
+    isHighlighted: Boolean = false,
+    isSuccess: Boolean = false
+) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = Slate500)
-        Text(text = value, style = MaterialTheme.typography.bodyMedium, color = valueColor, fontWeight = FontWeight.SemiBold)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = value,
+            style = if (isMonospace) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium,
+            color = when {
+                isSuccess -> EmeraldDark
+                isHighlighted -> BrandIndigo
+                else -> Slate900
+            },
+            fontWeight = if (isHighlighted || isSuccess) FontWeight.Bold else FontWeight.Medium,
+            fontFamily = if (isMonospace) androidx.compose.ui.text.font.FontFamily.Monospace else null
+        )
     }
 }

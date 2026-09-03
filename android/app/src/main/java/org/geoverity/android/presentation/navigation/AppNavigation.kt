@@ -155,6 +155,7 @@ fun AppNavigation(navController: NavHostController) {
             composable(Screen.Gallery.route) {
                 GalleryScreen(
                     onNavigateToViewer = { vId -> navController.navigate("viewer/$vId") },
+                    onNavigateToCapture = { navController.navigate(Screen.SecureCapture.route) },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

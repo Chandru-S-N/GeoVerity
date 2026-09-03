@@ -31,8 +31,9 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // 1. Third-party verification endpoint MUST NOT require login/auth
+                // 1. Third-party verification & public ping endpoints MUST NOT require login/auth
                 .requestMatchers(HttpMethod.POST, "/api/v1/verify").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/ping").permitAll()
                 
                 // 2. Swagger / OpenAPI / Actuator public endpoints
                 .requestMatchers(

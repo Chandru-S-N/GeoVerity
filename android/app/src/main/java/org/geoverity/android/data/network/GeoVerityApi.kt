@@ -68,6 +68,9 @@ data class VerificationResponseDto(
 
 interface GeoVerityApi {
 
+    @GET("/api/v1/ping")
+    suspend fun ping(): Response<Map<String, Any>>
+
     @POST("/api/v1/time/token")
     suspend fun getTimeToken(
         @Header("X-API-Key") apiKey: String,
