@@ -14,9 +14,11 @@ import org.geoverity.android.data.network.CanonicalMetadataRequestDto
 import org.geoverity.android.data.network.OfflineSyncRequestDto
 import org.geoverity.android.data.network.RetrofitClient
 import org.geoverity.android.image.ImageComposer
+import java.io.File
+import java.io.FileOutputStream
 
 class OfflineSyncWorker(
-    context: Context,
+    private val context: Context,
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 
@@ -107,7 +109,11 @@ class OfflineSyncWorker(
 
                 val response = api.authenticateOfflineSync(apiKey, syncRequest)
                 if (response.isSuccessful && response.body()?.status == "AUTHENTICATED") {
-                    // Persist to Evidence History
+                    // Save final authenticated JPEG to local device storage for Gallery display
+                    val savedFile = File(context.filesDir, "${capture.verificationId}.jpg")
+                    FileOutputStream(savedFile).use { it.write(finalImageBytes) }
+
+                    // Persist to Evidence History and Gallery
                     db.evidenceHistoryDao().insert(
                         EvidenceHistoryEntity(
                             verificationId = capture.verificationId,
@@ -116,14 +122,15 @@ class OfflineSyncWorker(
                             latitude = capture.latitude,
                             longitude = capture.longitude,
                             trustedTimestamp = authoritativeTimestamp,
-                            signatureStatus = "VALID"
+                            signatureStatus = "VALID",
+                            localImagePath = savedFile.absolutePath
                         )
                     )
                     // Delete temporary offline record
                     db.offlineCaptureDao().delete(capture)
                 }
             } catch (e: Exception) {
-                // Network failed or server temporarily unreachable; will retry on next worker schedule
+                // Network failed or server temporarily unreachable; will retry automatically
             }
         }
 

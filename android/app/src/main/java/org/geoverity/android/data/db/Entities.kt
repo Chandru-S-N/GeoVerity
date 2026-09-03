@@ -38,5 +38,6 @@ data class EvidenceHistoryEntity(
     val trustedTimestamp: Long,
     val signatureStatus: String = "VALID",
     val localImagePath: String? = null,
+    val isLocalDeleted: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )

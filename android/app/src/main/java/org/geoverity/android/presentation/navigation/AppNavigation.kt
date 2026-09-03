@@ -25,6 +25,8 @@ import org.geoverity.android.presentation.screens.about.AboutScreen
 import org.geoverity.android.presentation.screens.capture.AuthenticationResultScreen
 import org.geoverity.android.presentation.screens.capture.CapturePreviewScreen
 import org.geoverity.android.presentation.screens.capture.SecureCaptureScreen
+import org.geoverity.android.presentation.screens.gallery.GalleryScreen
+import org.geoverity.android.presentation.screens.gallery.ImageViewerScreen
 import org.geoverity.android.presentation.screens.history.EvidenceDetailsScreen
 import org.geoverity.android.presentation.screens.history.EvidenceHistoryScreen
 import org.geoverity.android.presentation.screens.home.HomeScreen
@@ -45,6 +47,7 @@ fun AppNavigation(navController: NavHostController) {
     val isTopLevelRoute = currentRoute in listOf(
         Screen.Home.route,
         Screen.SecureCapture.route,
+        Screen.Gallery.route,
         Screen.VerifyImage.route
     )
 
@@ -56,6 +59,7 @@ fun AppNavigation(navController: NavHostController) {
                     tonalElevation = 8.dp,
                     modifier = Modifier.shadow(8.dp)
                 ) {
+                    // 1. Home
                     NavigationBarItem(
                         selected = currentRoute == Screen.Home.route,
                         onClick = { navController.navigate(Screen.Home.route) },
@@ -68,6 +72,7 @@ fun AppNavigation(navController: NavHostController) {
                         )
                     )
 
+                    // 2. Secure Capture
                     NavigationBarItem(
                         selected = currentRoute == Screen.SecureCapture.route,
                         onClick = { navController.navigate(Screen.SecureCapture.route) },
@@ -80,6 +85,20 @@ fun AppNavigation(navController: NavHostController) {
                         )
                     )
 
+                    // 3. Local Gallery
+                    NavigationBarItem(
+                        selected = currentRoute == Screen.Gallery.route,
+                        onClick = { navController.navigate(Screen.Gallery.route) },
+                        icon = { Icon(Icons.Outlined.Collections, contentDescription = "Gallery") },
+                        label = { Text("Gallery", fontWeight = FontWeight.SemiBold) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = BrandPrimary,
+                            selectedTextColor = BrandPrimary,
+                            indicatorColor = IndigoLight
+                        )
+                    )
+
+                    // 4. Verify Image
                     NavigationBarItem(
                         selected = currentRoute == Screen.VerifyImage.route,
                         onClick = { navController.navigate(Screen.VerifyImage.route) },
@@ -92,6 +111,7 @@ fun AppNavigation(navController: NavHostController) {
                         )
                     )
 
+                    // 5. More
                     NavigationBarItem(
                         selected = showMoreSheet,
                         onClick = { showMoreSheet = true },
@@ -115,10 +135,11 @@ fun AppNavigation(navController: NavHostController) {
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToCapture = { navController.navigate(Screen.SecureCapture.route) },
+                    onNavigateToGallery = { navController.navigate(Screen.Gallery.route) },
                     onNavigateToVerify = { navController.navigate(Screen.VerifyImage.route) },
                     onNavigateToOffline = { navController.navigate(Screen.OfflineCaptures.route) },
                     onNavigateToHistory = { navController.navigate(Screen.EvidenceHistory.route) },
-                    onNavigateToDetails = { vId -> navController.navigate("evidence_details/$vId") }
+                    onNavigateToDetails = { vId -> navController.navigate("viewer/$vId") }
                 )
             }
 
@@ -127,6 +148,24 @@ fun AppNavigation(navController: NavHostController) {
                     onPhotoCaptured = { photoPath, locName, lat, lon ->
                         navController.navigate("capture_preview?path=$photoPath&loc=$locName&lat=$lat&lon=$lon")
                     },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.Gallery.route) {
+                GalleryScreen(
+                    onNavigateToViewer = { vId -> navController.navigate("viewer/$vId") },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = "viewer/{verificationId}",
+                arguments = listOf(navArgument("verificationId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val vId = backStackEntry.arguments?.getString("verificationId") ?: ""
+                ImageViewerScreen(
+                    verificationId = vId,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -141,7 +180,7 @@ fun AppNavigation(navController: NavHostController) {
                 )
             ) { backStackEntry ->
                 val path = backStackEntry.arguments?.getString("path") ?: ""
-                val loc = backStackEntry.arguments?.getString("loc") ?: "Karur, Tamil Nadu"
+                val loc = backStackEntry.arguments?.getString("loc") ?: "Thanthonimalai, Karur - 639005, Tamil Nadu, India"
                 val lat = backStackEntry.arguments?.getFloat("lat")?.toDouble() ?: 10.785234
                 val lon = backStackEntry.arguments?.getFloat("lon")?.toDouble() ?: 78.125432
 
@@ -167,7 +206,7 @@ fun AppNavigation(navController: NavHostController) {
                 AuthenticationResultScreen(
                     verificationId = vId,
                     onNavigateHome = { navController.navigate(Screen.Home.route) },
-                    onNavigateToHistory = { navController.navigate(Screen.EvidenceHistory.route) }
+                    onNavigateToHistory = { navController.navigate(Screen.Gallery.route) }
                 )
             }
 
@@ -185,7 +224,7 @@ fun AppNavigation(navController: NavHostController) {
 
             composable(Screen.EvidenceHistory.route) {
                 EvidenceHistoryScreen(
-                    onNavigateToDetails = { vId -> navController.navigate("evidence_details/$vId") },
+                    onNavigateToDetails = { vId -> navController.navigate("viewer/$vId") },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -240,22 +279,27 @@ fun AppNavigation(navController: NavHostController) {
                         color = Slate900
                     )
 
-                    MoreMenuItem("Offline Captures", Icons.Outlined.CloudQueue, AmberLight, BrandAmber) {
+                    MoreMenuItem("Local Image Gallery", Icons.Outlined.Collections, IndigoLight, BrandIndigo) {
+                        showMoreSheet = false
+                        navController.navigate(Screen.Gallery.route)
+                    }
+
+                    MoreMenuItem("Offline Captures & Auto-Sync", Icons.Outlined.CloudQueue, AmberLight, BrandAmber) {
                         showMoreSheet = false
                         navController.navigate(Screen.OfflineCaptures.route)
                     }
 
-                    MoreMenuItem("Evidence History", Icons.Outlined.History, IndigoLight, BrandIndigo) {
+                    MoreMenuItem("Evidence History Registry", Icons.Outlined.History, IndigoLight, BrandIndigo) {
                         showMoreSheet = false
                         navController.navigate(Screen.EvidenceHistory.route)
                     }
 
-                    MoreMenuItem("Share Evidence", Icons.Outlined.Share, EmeraldLight, BrandEmerald) {
+                    MoreMenuItem("Share Evidence Guide", Icons.Outlined.Share, EmeraldLight, BrandEmerald) {
                         showMoreSheet = false
                         navController.navigate(Screen.ShareEvidence.route)
                     }
 
-                    MoreMenuItem("Settings", Icons.Outlined.Settings, Slate100, Slate700) {
+                    MoreMenuItem("Settings & Server URL", Icons.Outlined.Settings, Slate100, Slate700) {
                         showMoreSheet = false
                         navController.navigate(Screen.Settings.route)
                     }

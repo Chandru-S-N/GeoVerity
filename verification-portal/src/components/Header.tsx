@@ -1,9 +1,9 @@
 import React from 'react';
-import { ShieldCheck, Server, Key, ShieldAlert, BookOpen, Sparkles } from 'lucide-react';
+import { ShieldCheck, Key, BookOpen, Sparkles, Network } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'verify' | 'admin' | 'simulator' | 'docs';
-  setActiveTab: (tab: 'verify' | 'admin' | 'simulator' | 'docs') => void;
+  activeTab: 'verify' | 'thirdparty' | 'simulator' | 'admin' | 'docs';
+  setActiveTab: (tab: 'verify' | 'thirdparty' | 'simulator' | 'admin' | 'docs') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
@@ -29,10 +29,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           </div>
 
           {/* Navigation Tabs */}
-          <nav className="flex space-x-1 sm:space-x-2 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/80">
+          <nav className="flex space-x-1 sm:space-x-1.5 bg-slate-100/80 p-1.5 rounded-xl border border-slate-200/80">
             <button
               onClick={() => setActiveTab('verify')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 activeTab === 'verify'
                   ? 'bg-white text-indigo-600 shadow-sm border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
@@ -43,8 +43,20 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             </button>
 
             <button
+              onClick={() => setActiveTab('thirdparty')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                activeTab === 'thirdparty'
+                  ? 'bg-white text-emerald-600 shadow-sm border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Network className="h-4 w-4 text-emerald-500" />
+              <span>Third-Party API Hub</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('simulator')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 activeTab === 'simulator'
                   ? 'bg-white text-purple-600 shadow-sm border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
@@ -56,26 +68,26 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
             <button
               onClick={() => setActiveTab('admin')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 activeTab === 'admin'
-                  ? 'bg-white text-indigo-600 shadow-sm border border-slate-200'
+                  ? 'bg-white text-amber-600 shadow-sm border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
               <Key className="h-4 w-4 text-amber-500" />
-              <span>Admin &amp; API Clients</span>
+              <span>Admin &amp; Keys</span>
             </button>
 
             <button
               onClick={() => setActiveTab('docs')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 activeTab === 'docs'
-                  ? 'bg-white text-emerald-600 shadow-sm border border-slate-200'
+                  ? 'bg-white text-indigo-600 shadow-sm border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <BookOpen className="h-4 w-4 text-emerald-500" />
-              <span>Security Specs</span>
+              <BookOpen className="h-4 w-4 text-indigo-500" />
+              <span>Specs</span>
             </button>
           </nav>
 

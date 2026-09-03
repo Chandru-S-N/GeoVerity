@@ -3,6 +3,7 @@ package org.geoverity.android
 import android.app.Application
 import org.geoverity.android.data.db.GeoVerityDatabase
 import org.geoverity.android.data.security.SecureStorage
+import org.geoverity.android.offline.OfflineSyncManager
 
 class GeoVerityApp : Application() {
 
@@ -17,6 +18,9 @@ class GeoVerityApp : Application() {
         instance = this
         database = GeoVerityDatabase.getDatabase(this)
         secureStorage = SecureStorage(this)
+
+        // Initialize Automatic Real-Time Offline Auto-Sync on Network Connection
+        OfflineSyncManager.initialize(this)
     }
 
     companion object {

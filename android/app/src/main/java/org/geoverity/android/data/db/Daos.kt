@@ -24,6 +24,9 @@ interface OfflineCaptureDao {
     @Delete
     suspend fun delete(capture: OfflineCaptureEntity)
 
+    @Query("DELETE FROM offline_captures WHERE verificationId = :verificationId")
+    suspend fun deleteByVerificationId(verificationId: String)
+
     @Query("DELETE FROM offline_captures WHERE status = 'REJECTED_ANOMALY' OR status = 'SYNCED'")
     suspend fun purgeCompletedAndRejected()
 }
@@ -34,11 +37,17 @@ interface EvidenceHistoryDao {
     @Query("SELECT * FROM evidence_history ORDER BY createdAt DESC")
     fun getAllHistory(): Flow<List<EvidenceHistoryEntity>>
 
+    @Query("SELECT * FROM evidence_history WHERE isLocalDeleted = 0 ORDER BY createdAt DESC")
+    fun getActiveLocalEvidence(): Flow<List<EvidenceHistoryEntity>>
+
     @Query("SELECT * FROM evidence_history WHERE verificationId = :verificationId LIMIT 1")
     suspend fun getByVerificationId(verificationId: String): EvidenceHistoryEntity?
 
     @Query("SELECT COUNT(*) FROM evidence_history")
     fun getTotalAuthenticatedCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM evidence_history WHERE isLocalDeleted = 0")
+    fun getLocalEvidenceCount(): Flow<Int>
 
     @Query("SELECT * FROM evidence_history ORDER BY createdAt DESC LIMIT 5")
     fun getRecentEvidence(): Flow<List<EvidenceHistoryEntity>>
@@ -48,4 +57,10 @@ interface EvidenceHistoryDao {
 
     @Delete
     suspend fun delete(evidence: EvidenceHistoryEntity)
+
+    @Query("DELETE FROM evidence_history WHERE verificationId = :verificationId")
+    suspend fun deleteByVerificationId(verificationId: String)
+
+    @Query("UPDATE evidence_history SET isLocalDeleted = 1, localImagePath = NULL WHERE verificationId = :verificationId")
+    suspend fun markLocalDeleted(verificationId: String)
 }
