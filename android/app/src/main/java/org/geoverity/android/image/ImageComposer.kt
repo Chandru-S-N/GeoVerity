@@ -25,8 +25,13 @@ object ImageComposer {
     /**
      * Composes the final authenticated image:
      * 1. Keeps original photo area clean on top (untouched & uncompressed).
-     * 2. Renders dedicated metadata footer at bottom with detailed location & pincode.
-     * 3. Renders dedicated QR code in the footer with white container.
+     * 2. Renders dedicated metadata footer at bottom with:
+     *    - Detailed location & pincode
+     *    - GPS Coordinates
+     *    - Date on one line
+     *    - Time on the next line
+     *    - Verification ID
+     * 3. Renders dedicated QR code in the footer with high-contrast white container.
      * 4. Embeds Verification ID in JPEG COM marker (0xFF, 0xFE).
      * 5. Returns final authenticated image bytes ready for SHA-256 calculation.
      */
@@ -40,8 +45,8 @@ object ImageComposer {
     ): ByteArray {
         val width = photoBitmap.width
         val photoHeight = photoBitmap.height
-        // Allocate generous footer height (at least 280px or 25% of photo)
-        val footerHeight = (photoHeight * 0.25f).toInt().coerceAtLeast(280)
+        // Allocate generous footer height (at least 320px or 27% of photo) to fit separate Date and Time lines
+        val footerHeight = (photoHeight * 0.27f).toInt().coerceAtLeast(320)
         val totalHeight = photoHeight + footerHeight
 
         val compositeBitmap = Bitmap.createBitmap(width, totalHeight, Bitmap.Config.ARGB_8888)
@@ -64,15 +69,15 @@ object ImageComposer {
         }
         canvas.drawLine(0f, photoHeight.toFloat(), width.toFloat(), photoHeight.toFloat(), accentLinePaint)
 
-        // 3. Format Date & Time from trusted timestamp
-        val dateFormat = SimpleDateFormat("dd MMM yyyy", Locale.US)
+        // 3. Format Date & Time strictly on separate lines from trusted timestamp
+        val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale.US)
         val timeFormat = SimpleDateFormat("hh:mm:ss a (z)", Locale.US)
         val dateStr = dateFormat.format(Date(trustedTimestamp))
         val timeStr = timeFormat.format(Date(trustedTimestamp))
 
         // 4. Calculate responsive typography sizes
-        val baseTextSize = (footerHeight * 0.085f).coerceAtLeast(20f)
-        val lineSpacing = baseTextSize * 1.45f
+        val baseTextSize = (footerHeight * 0.078f).coerceAtLeast(18f)
+        val lineSpacing = baseTextSize * 1.40f
         val leftMargin = width * 0.04f
         val qrSize = (footerHeight * 0.72f).toInt()
         val textMaxRight = width - qrSize - (width * 0.08f)
@@ -89,36 +94,34 @@ object ImageComposer {
             typeface = Typeface.DEFAULT
         }
 
-        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(148, 163, 184) // Slate 400
-            textSize = baseTextSize * 0.9f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        }
-
         val idPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.rgb(129, 140, 248) // Indigo 400
             textSize = baseTextSize * 1.05f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
 
-        var currentY = photoHeight + (footerHeight * 0.16f)
+        var currentY = photoHeight + (footerHeight * 0.15f)
 
-        // Location line(s) with word wrap if needed
+        // Line 1: Detailed Location with Pincode
         val locationLines = wrapText("📍 Location: $locationName", titlePaint, textMaxRight - leftMargin)
         for (line in locationLines.take(2)) {
             canvas.drawText(line, leftMargin, currentY, titlePaint)
             currentY += lineSpacing
         }
 
-        // GPS Coordinates
+        // Line 2: GPS Coordinates
         canvas.drawText(String.format(Locale.US, "🌐 GPS: %.6f, %.6f", latitude, longitude), leftMargin, currentY, textPaint)
         currentY += lineSpacing
 
-        // Date & Time
-        canvas.drawText("🕒 Timestamp: $dateStr, $timeStr", leftMargin, currentY, textPaint)
+        // Line 3: Date in ONE line
+        canvas.drawText("📅 Date: $dateStr", leftMargin, currentY, textPaint)
         currentY += lineSpacing
 
-        // Verification ID
+        // Line 4: Time in the NEXT line
+        canvas.drawText("⏰ Time: $timeStr", leftMargin, currentY, textPaint)
+        currentY += lineSpacing
+
+        // Line 5: Verification ID
         canvas.drawText("🔑 Verification ID: $verificationId", leftMargin, currentY, idPaint)
 
         // 5. Draw QR Code on right side of footer with white rounded background

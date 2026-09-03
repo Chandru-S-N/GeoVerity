@@ -2,6 +2,7 @@ package org.geoverity.android.offline
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.media.ExifInterface
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import org.geoverity.android.GeoVerityApp
@@ -16,6 +17,9 @@ import org.geoverity.android.data.network.RetrofitClient
 import org.geoverity.android.image.ImageComposer
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class OfflineSyncWorker(
     private val context: Context,
@@ -63,7 +67,7 @@ class OfflineSyncWorker(
                 val decryptedRawBytes = keyStoreManager.decrypt(capture.encryptedImageData)
                 val photoBitmap = BitmapFactory.decodeByteArray(decryptedRawBytes, 0, decryptedRawBytes.size)
 
-                // 3. Compose final image with dedicated metadata footer and QR code
+                // 3. Compose final image with dedicated metadata footer, separate Date/Time lines and QR code
                 val finalImageBytes = ImageComposer.composeFinalImageBytes(
                     photoBitmap = photoBitmap,
                     locationName = capture.locationName,
@@ -112,6 +116,15 @@ class OfflineSyncWorker(
                     // Save final authenticated JPEG to local device storage for Gallery display
                     val savedFile = File(context.filesDir, "${capture.verificationId}.jpg")
                     FileOutputStream(savedFile).use { it.write(finalImageBytes) }
+
+                    // Inject metadata into EXIF
+                    try {
+                        val exif = ExifInterface(savedFile.absolutePath)
+                        exif.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, "GeoVerity Authenticated Digital Evidence: ${capture.verificationId}")
+                        exif.setAttribute(ExifInterface.TAG_USER_COMMENT, "GEOVERITY_ID:${capture.verificationId}; LOCATION:${capture.locationName}; TRUSTED_EPOCH:$authoritativeTimestamp")
+                        exif.setAttribute(ExifInterface.TAG_DATETIME, SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).format(Date(authoritativeTimestamp)))
+                        exif.saveAttributes()
+                    } catch (e: Exception) {}
 
                     // Persist to Evidence History and Gallery
                     db.evidenceHistoryDao().insert(
