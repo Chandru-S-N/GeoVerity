@@ -1,0 +1,23 @@
+app: geoverity
+services:
+  - name: geoverity-backend
+    type: web
+    git:
+      repository: github.com/Chandru-S-N/GeoVerity
+      branch: main
+      workdir: backend
+    docker:
+      dockerfile: Dockerfile
+    instance_type: nano
+    regions:
+      - fra
+    ports:
+      - port: 8080
+        path: /
+    routes:
+      - path: /
+    env:
+      - key: SPRING_PROFILES_ACTIVE
+        value: dev
+      - key: ADMIN_API_KEY
+        value: gv_admin_master_secret_key_884920

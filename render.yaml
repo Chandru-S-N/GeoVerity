@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: geoverity-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    region: oregon
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: dev
+      - key: ADMIN_API_KEY
+        value: gv_admin_master_secret_key_884920
+      - key: PORT
+        value: 10000

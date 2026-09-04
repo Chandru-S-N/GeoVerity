@@ -1,20 +1,21 @@
-package org.geoverity.android.presentation.screens.gallery
+﻿package org.geoverity.android.presentation.screens.gallery
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.os.Environment
-import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,9 +34,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -43,9 +45,6 @@ import org.geoverity.android.GeoVerityApp
 import org.geoverity.android.data.db.EvidenceHistoryEntity
 import org.geoverity.android.presentation.theme.*
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +60,7 @@ fun GalleryScreen(
     val activeEvidence by db.evidenceHistoryDao().getActiveLocalEvidence().collectAsState(initial = emptyList())
     val pendingCaptures by db.offlineCaptureDao().getAllOfflineCaptures().collectAsState(initial = emptyList())
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Local Photos, 1: Pending Sync
+    var selectedTab by remember { mutableIntStateOf(0) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var evidenceToDelete by remember { mutableStateOf<EvidenceHistoryEntity?>(null) }
 
@@ -77,7 +76,7 @@ fun GalleryScreen(
                             color = Slate900
                         )
                         Text(
-                            text = "Locally stored • Verifiable digital proof",
+                            text = "${activeEvidence.size} authenticated photos",
                             style = MaterialTheme.typography.labelSmall,
                             color = Slate500
                         )
@@ -107,21 +106,17 @@ fun GalleryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Spacer(modifier = Modifier.height(2.dp))
-
             // Tab Selector Pill Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
                     .background(WhiteBackground, RoundedCornerShape(18.dp))
                     .border(1.dp, Slate200, RoundedCornerShape(18.dp))
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Tab 0: Local Evidence Photos
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -145,7 +140,7 @@ fun GalleryScreen(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "Local Photos (${activeEvidence.size})",
+                            text = "My Photos (${activeEvidence.size})",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (selectedTab == 0) Color.White else Slate700
@@ -153,7 +148,6 @@ fun GalleryScreen(
                     }
                 }
 
-                // Tab 1: Pending Auto-Sync Queue
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -186,13 +180,12 @@ fun GalleryScreen(
                 }
             }
 
-            // Tab Content
             if (selectedTab == 0) {
                 if (activeEvidence.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                            .fillMaxSize()
+                            .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Card(
@@ -201,17 +194,16 @@ fun GalleryScreen(
                             border = BorderStroke(1.dp, Slate200),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp)
                                 .shadow(4.dp, RoundedCornerShape(26.dp))
                         ) {
                             Column(
-                                modifier = Modifier.padding(32.dp),
+                                modifier = Modifier.padding(36.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(76.dp)
+                                        .size(80.dp)
                                         .background(IndigoLight, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -219,240 +211,171 @@ fun GalleryScreen(
                                         Icons.Outlined.PhotoLibrary,
                                         contentDescription = null,
                                         tint = BrandPrimary,
-                                        modifier = Modifier.size(38.dp)
+                                        modifier = Modifier.size(40.dp)
                                     )
                                 }
                                 Text(
-                                    text = "No Evidence Photos Stored Yet",
+                                    text = "No Evidence Photos Yet",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Slate900
                                 )
                                 Text(
-                                    text = "Take a photograph using the Controlled Camera to capture cryptographically authenticated evidence with tamper-proof geolocation.",
+                                    text = "Capture geotagged photos using the Controlled Camera to build your authenticated evidence gallery.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Slate500,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    textAlign = TextAlign.Center
                                 )
                                 Button(
                                     onClick = onNavigateToCapture,
                                     shape = RoundedCornerShape(16.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+                                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
                                 ) {
                                     Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Capture Digital Evidence", fontWeight = FontWeight.Bold)
+                                    Text("Capture Evidence", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
                     }
                 } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         items(activeEvidence, key = { it.verificationId }) { item ->
-                            EvidenceImageCard(
+                            EvidenceGridTile(
                                 evidence = item,
-                                onView = { onNavigateToViewer(item.verificationId) },
-                                onShare = {
-                                    val file = resolveImageFile(context, item.localImagePath, item.verificationId)
-                                    if (file != null && file.exists()) {
-                                        val uri = FileProvider.getUriForFile(
-                                            context,
-                                            "${context.packageName}.fileprovider",
-                                            file
-                                        )
-                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "image/jpeg"
-                                            putExtra(Intent.EXTRA_STREAM, uri)
-                                            putExtra(Intent.EXTRA_SUBJECT, "GeoVerity Authenticated Evidence")
-                                            putExtra(Intent.EXTRA_TEXT, "GeoVerity Authenticated Digital Evidence\nLocation: ${item.locationName}\nGPS: ${item.latitude}, ${item.longitude}\n(Note: Share as Document/File to preserve exact cryptographic bits).")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }
-                                        context.startActivity(Intent.createChooser(shareIntent, "Share Original Evidence File"))
-                                    }
-                                },
-                                onDelete = {
+                                onTap = { onNavigateToViewer(item.verificationId) },
+                                onLongPress = {
                                     evidenceToDelete = item
                                     showDeleteDialog = true
                                 }
                             )
                         }
-
-                        item { Spacer(modifier = Modifier.height(16.dp)) }
+                        item(span = { GridItemSpan(4) }) {
+                            Spacer(modifier = Modifier.height(80.dp))
+                        }
                     }
                 }
             } else {
-                // Pending Offline Captures list
                 if (pendingCaptures.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                            .fillMaxSize()
+                            .padding(24.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Card(
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                             border = BorderStroke(1.dp, Slate200),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
-                                modifier = Modifier.padding(32.dp),
+                                modifier = Modifier.padding(36.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(68.dp)
+                                        .size(72.dp)
                                         .background(EmeraldLight, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(Icons.Outlined.CloudDone, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(36.dp))
                                 }
                                 Text(
-                                    text = "All Captures Synchronized!",
+                                    text = "All Synchronized!",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = Slate900
                                 )
                                 Text(
-                                    text = "All evidence is fully authenticated and notarized on the authority server ledger.",
+                                    text = "All evidence is authenticated and secured on the authority server.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Slate500,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
                     }
                 } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         items(pendingCaptures, key = { it.verificationId }) { offline ->
-                            Card(
-                                shape = RoundedCornerShape(22.dp),
-                                colors = CardDefaults.cardColors(containerColor = WhiteBackground),
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .shadow(2.dp, RoundedCornerShape(22.dp)),
-                                border = BorderStroke(1.dp, Slate200)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(AmberLight),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(18.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.padding(4.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Encrypted Offline Geotag",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Slate900
-                                        )
-
-                                        Box(
-                                            modifier = Modifier
-                                                .background(AmberLight, RoundedCornerShape(50.dp))
-                                                .border(1.dp, BrandAmber.copy(alpha = 0.4f), RoundedCornerShape(50.dp))
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                                        ) {
-                                            Text(
-                                                text = "AUTO-SYNC PENDING",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = AmberDark,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-
-                                    Text(
-                                        text = "📍 ${offline.locationName}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Slate700
+                                    Icon(
+                                        Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = BrandAmber,
+                                        modifier = Modifier.size(20.dp)
                                     )
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = "Encrypted in Android Keystore",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = BrandIndigo,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        Text(
-                                            text = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(Date(offline.deviceCaptureTime)),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Slate500
-                                        )
-                                    }
+                                    Text(
+                                        text = offline.locationName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = AmberDark,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        textAlign = TextAlign.Center,
+                                        fontSize = 8.sp
+                                    )
                                 }
                             }
                         }
-
-                        item { Spacer(modifier = Modifier.height(16.dp)) }
+                        item(span = { GridItemSpan(4) }) {
+                            Spacer(modifier = Modifier.height(80.dp))
+                        }
                     }
                 }
             }
         }
     }
 
-    // Delete Confirmation Dialog (Device Only Deletion)
     if (showDeleteDialog && evidenceToDelete != null) {
         val item = evidenceToDelete!!
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = BrandRose, modifier = Modifier.size(34.dp)) },
+            icon = {
+                Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = BrandRose, modifier = Modifier.size(34.dp))
+            },
             title = {
-                Text(
-                    text = "Delete Local Photograph?",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold
-                )
+                Text(text = "Delete Photo?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "This will permanently delete the photograph file from your mobile device storage to free up space.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Slate700
-                    )
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = IndigoLight.copy(alpha = 0.6f))
-                    ) {
-                        Text(
-                            text = "🔒 Security Note: The server's cryptographic verification record, SHA-256 hash, and ECDSA signature remain permanently intact on the authority server ledger.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = IndigoDark,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                    }
-                }
+                Text(
+                    text = "This will permanently delete the photo from your device. The server verification record remains intact.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Slate700
+                )
             },
             confirmButton = {
                 Button(
                     onClick = {
                         coroutineScope.launch {
                             val file = resolveImageFile(context, item.localImagePath, item.verificationId)
-                            if (file != null && file.exists()) {
-                                file.delete()
-                            }
+                            if (file != null && file.exists()) file.delete()
                             db.evidenceHistoryDao().markLocalDeleted(item.verificationId)
                             showDeleteDialog = false
                             evidenceToDelete = null
@@ -461,7 +384,7 @@ fun GalleryScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = BrandRose),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Delete from Device", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Delete", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -482,7 +405,6 @@ private fun resolveImageFile(context: Context, localImagePath: String?, verifica
     }
     val internalFile = File(context.filesDir, "$verificationId.jpg")
     if (internalFile.exists()) return internalFile
-
     val picturesDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
     if (picturesDir != null) {
         val externalFile = File(picturesDir, "$verificationId.jpg")
@@ -491,12 +413,12 @@ private fun resolveImageFile(context: Context, localImagePath: String?, verifica
     return internalFile
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun EvidenceImageCard(
+private fun EvidenceGridTile(
     evidence: EvidenceHistoryEntity,
-    onView: () -> Unit,
-    onShare: () -> Unit,
-    onDelete: () -> Unit
+    onTap: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     val context = LocalContext.current
     var loadedBitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -511,170 +433,44 @@ private fun EvidenceImageCard(
         }
     }
 
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = WhiteBackground),
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .shadow(3.dp, RoundedCornerShape(24.dp), spotColor = BrandIndigo.copy(alpha = 0.12f)),
-        border = BorderStroke(1.dp, Slate200)
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(4.dp))
+            .background(Slate100)
+            .combinedClickable(onClick = onTap, onLongClick = onLongPress),
+        contentAlignment = Alignment.Center
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            
-            // Image Thumbnail Container with overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(210.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Slate100)
-                    .clickable { onView() },
-                contentAlignment = Alignment.Center
-            ) {
-                loadedBitmap?.let { bmp ->
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = "Evidence Thumbnail",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } ?: Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(Icons.Outlined.Image, contentDescription = null, tint = Slate400, modifier = Modifier.size(44.dp))
-                    Text(text = "Loading Local Image...", style = MaterialTheme.typography.labelSmall, color = Slate500)
-                }
+        loadedBitmap?.let { bmp ->
+            Image(
+                bitmap = bmp.asImageBitmap(),
+                contentDescription = "Evidence Photo",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } ?: CircularProgressIndicator(
+            modifier = Modifier.size(20.dp),
+            color = Slate300,
+            strokeWidth = 2.dp
+        )
 
-                // Status Badge Overlay on top-right of image
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(10.dp)
-                        .background(if (isPendingSync) AmberLight else EmeraldLight, RoundedCornerShape(50.dp))
-                        .border(
-                            1.dp,
-                            if (isPendingSync) BrandAmber.copy(alpha = 0.4f) else BrandEmerald.copy(alpha = 0.4f),
-                            RoundedCornerShape(50.dp)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            if (isPendingSync) Icons.Default.CloudSync else Icons.Default.Verified,
-                            contentDescription = null,
-                            tint = if (isPendingSync) BrandAmber else BrandEmerald,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Text(
-                            text = if (isPendingSync) "PENDING SYNC" else "AUTHENTICATED",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isPendingSync) AmberDark else EmeraldDark,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                // Bottom gradient scrim showing tap to zoom
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
-                            )
-                        )
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(Icons.Default.ZoomIn, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Text(
-                            text = "Tap to view full resolution & proof",
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            // Location & Pincode info
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = evidence.locationName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Slate900,
-                    maxLines = 2
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "GPS: ${String.format(Locale.US, "%.5f, %.5f", evidence.latitude, evidence.longitude)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Slate500
-                    )
-                    Text(
-                        text = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(Date(evidence.trustedTimestamp)),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Slate500
-                    )
-                }
-            }
-
-            HorizontalDivider(color = Slate100)
-
-            // Action Buttons Row: [ VIEW ] [ SHARE ] [ DELETE ]
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // View Button
-                Button(
-                    onClick = onView,
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.weight(1.2f),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                ) {
-                    Icon(Icons.Outlined.Visibility, contentDescription = "View", modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "View", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-
-                // Share Button
-                OutlinedButton(
-                    onClick = onShare,
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.weight(1.2f),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandIndigo),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                ) {
-                    Icon(Icons.Outlined.Share, contentDescription = "Share", modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Share", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-
-                // Delete Button
-                OutlinedButton(
-                    onClick = onDelete,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandRose),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
-                ) {
-                    Icon(Icons.Outlined.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp))
-                }
-            }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(3.dp)
+                .size(16.dp)
+                .background(
+                    if (isPendingSync) BrandAmber else BrandEmerald,
+                    CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (isPendingSync) Icons.Default.CloudSync else Icons.Default.Verified,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(10.dp)
+            )
         }
     }
 }

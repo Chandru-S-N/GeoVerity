@@ -35,9 +35,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,14 +57,12 @@ fun ImageViewerScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val clipboardManager = LocalClipboardManager.current
     val coroutineScope = rememberCoroutineScope()
     val db = GeoVerityApp.instance.database
 
     var evidence by remember { mutableStateOf<EvidenceHistoryEntity?>(null) }
     var loadedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var hashCopied by remember { mutableStateOf(false) }
 
     LaunchedEffect(verificationId) {
         withContext(Dispatchers.IO) {
@@ -235,43 +231,9 @@ fun ImageViewerScreen(
                             value = SimpleDateFormat("dd MMMM yyyy, hh:mm:ss a (z)", Locale.US).format(Date(ev.trustedTimestamp))
                         )
 
-                        // Composite SHA-256 Hash box with Copy button
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(text = "Composite SHA-256 Hash", style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.Bold)
-                                Text(
-                                    text = if (hashCopied) "Copied!" else "Copy Hash",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (hashCopied) BrandEmerald else BrandPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.clickable {
-                                        clipboardManager.setText(AnnotatedString(ev.sha256Hash))
-                                        hashCopied = true
-                                    }
-                                )
-                            }
-                            Card(
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Slate100),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = ev.sha256Hash,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Slate900,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    modifier = Modifier.padding(10.dp)
-                                )
-                            }
-                        }
-
                         ProofField(
-                            label = "Digital Signature Scheme",
-                            value = if (ev.signatureStatus == "VALID") "ECDSA NIST P-256 (SHA256withECDSA Validated)" else "Pending server synchronization",
+                            label = "Digital Signature",
+                            value = if (ev.signatureStatus == "VALID") "Verified by Authority Server" else "Pending server synchronization",
                             isSuccess = ev.signatureStatus == "VALID"
                         )
                     }
@@ -295,25 +257,11 @@ fun ImageViewerScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "This will permanently delete the photograph file from your mobile device storage to free up space.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Slate700
-                    )
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = IndigoLight.copy(alpha = 0.6f))
-                    ) {
-                        Text(
-                            text = "🔒 Security Note: The server's cryptographic verification record, SHA-256 composite hash, and ECDSA signature will remain permanently intact on the authority server ledger.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = IndigoDark,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                    }
-                }
+                Text(
+                    text = "This will permanently delete the photo from your device. The server verification record remains intact and unaffected.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Slate700
+                )
             },
             confirmButton = {
                 Button(

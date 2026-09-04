@@ -120,7 +120,7 @@ fun HomeScreen(
                                     fontWeight = FontWeight.ExtraBold
                                 )
                                 Text(
-                                    text = "Secure Digital Evidence Platform",
+                                    text = "Authenticated Evidence Platform",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Slate500
                                 )
@@ -373,7 +373,7 @@ fun HomeScreen(
                                 Icon(Icons.Default.Verified, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(16.dp))
                             }
                             Text(text = "$totalCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Slate900)
-                            Text(text = "Saved on Device", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(text = "Total Authenticated", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 

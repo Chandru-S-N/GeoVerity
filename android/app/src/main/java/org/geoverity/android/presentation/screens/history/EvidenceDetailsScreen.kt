@@ -128,13 +128,8 @@ fun EvidenceDetailsScreen(
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Composite SHA-256 Hash", style = MaterialTheme.typography.labelSmall, color = Slate500)
-                            Text(text = item.sha256Hash, style = MaterialTheme.typography.labelSmall, color = Slate900, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Server Digital Signature", style = MaterialTheme.typography.labelSmall, color = Slate500)
-                            Text(text = "VALID (ECDSA NIST P-256 Verified)", style = MaterialTheme.typography.bodyMedium, color = BrandEmerald, fontWeight = FontWeight.Bold)
+                            Text(text = "Authentication Status", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            Text(text = "VERIFIED BY AUTHORITY SERVER", style = MaterialTheme.typography.bodyMedium, color = BrandEmerald, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

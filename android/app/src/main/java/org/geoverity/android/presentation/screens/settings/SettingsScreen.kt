@@ -36,8 +36,6 @@ fun SettingsScreen(
     val serverHealth by ServerHealthChecker.state.collectAsState()
 
     var serverUrl by remember { mutableStateOf(secureStorage.getServerUrl()) }
-    var apiKeyInput by remember { mutableStateOf("") }
-    var showApiKeyInput by remember { mutableStateOf(false) }
     var isTesting by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<ConnectionTestResult?>(null) }
     var isScanning by remember { mutableStateOf(false) }
@@ -218,7 +216,7 @@ fun SettingsScreen(
                 }
             }
 
-            // 2. Client Authorization & Keystore Security Card
+            // 2. Cryptographic Security Info Card
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = WhiteBackground),
@@ -231,44 +229,16 @@ fun SettingsScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(text = "Cryptographic Identity & Keystore", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(text = "Cryptographic Security", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-                    SettingRow("Authentication Scheme", "App-Level X-API-Key (Zero User Login)")
-                    SettingRow("KeyStore Security", "Android Keystore AES-256-GCM")
-                    SettingRow("Digital Signature Algorithm", "ECDSA NIST P-256 (FIPS 186-4)")
-                    SettingRow("Active API Key", secureStorage.getMaskedApiKey())
-
-                    TextButton(onClick = { showApiKeyInput = !showApiKeyInput }) {
-                        Text(text = if (showApiKeyInput) "Hide Key Input" else "Change API Key", color = BrandPrimary, fontWeight = FontWeight.SemiBold)
-                    }
-
-                    if (showApiKeyInput) {
-                        OutlinedTextField(
-                            value = apiKeyInput,
-                            onValueChange = { apiKeyInput = it },
-                            label = { Text("New API Key (gv_live_...)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(14.dp)
-                        )
-                        Button(
-                            onClick = {
-                                if (apiKeyInput.isNotBlank()) {
-                                    secureStorage.setApiKey(apiKeyInput)
-                                    apiKeyInput = ""
-                                    showApiKeyInput = false
-                                    savedMessage = "API Key successfully updated in Keystore!"
-                                }
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
-                        ) {
-                            Text("Save API Key")
-                        }
-                    }
+                    SettingRow("Authentication", "Zero Login (App-Level)")
+                    SettingRow("Local Encryption", "Android Keystore AES-256-GCM")
+                    SettingRow("Signature Algorithm", "ECDSA NIST P-256")
+                    SettingRow("Hash Algorithm", "SHA-256 Composite")
                 }
             }
 
-            // 3. Hardware Device Diagnostics Card
+            // 3. Device Diagnostics Card
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = WhiteBackground),
@@ -281,12 +251,11 @@ fun SettingsScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(text = "Device & App Diagnostics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(text = "Device Diagnostics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-                    SettingRow("Device ID", secureStorage.getDeviceId().take(18) + "...")
-                    SettingRow("App Build Version", "1.0.0 (Production Verified)")
-                    SettingRow("Offline Encryption", "AES-256-GCM MasterKey Active")
-                    SettingRow("Play Integrity Ready", "Hardware Attestation Active")
+                    SettingRow("App Version", "1.0.0")
+                    SettingRow("Offline Encryption", "AES-256-GCM Active")
+                    SettingRow("Hardware Attestation", "Android Play Integrity")
                 }
             }
 

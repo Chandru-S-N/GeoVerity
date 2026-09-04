@@ -20,12 +20,8 @@ class SecureStorage(context: Context) {
     init {
         // Ensure device has a unique persistent device ID
         if (getDeviceId().isBlank()) {
-            val generatedDeviceId = "dev_gv_" + UUID.randomUUID().toString().substring(0, 18)
+            val generatedDeviceId = "gv_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24)
             setDeviceId(generatedDeviceId)
-        }
-        // Set default demo API key if not set
-        if (getApiKey().isBlank()) {
-            setApiKey("gv_live_demo_android_app_key_2026_98a72")
         }
     }
 
@@ -58,11 +54,7 @@ class SecureStorage(context: Context) {
             .apply()
     }
 
-    fun getMaskedApiKey(): String {
-        val key = getApiKey()
-        if (key.length <= 12) return "gv_live_************"
-        return key.take(8) + "************" + key.takeLast(4)
-    }
+    fun hasApiKey(): Boolean = getApiKey().isNotBlank()
 
     companion object {
         private const val KEY_API_KEY = "api_key"
