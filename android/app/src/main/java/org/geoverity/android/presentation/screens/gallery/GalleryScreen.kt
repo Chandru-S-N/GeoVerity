@@ -1,18 +1,20 @@
 package org.geoverity.android.presentation.screens.gallery
 
+import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Environment
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -59,7 +61,7 @@ fun GalleryScreen(
     val activeEvidence by db.evidenceHistoryDao().getActiveLocalEvidence().collectAsState(initial = emptyList())
     val pendingCaptures by db.offlineCaptureDao().getAllOfflineCaptures().collectAsState(initial = emptyList())
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Local Images, 1: Pending Offline
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Local Photos, 1: Pending Sync
     var showDeleteDialog by remember { mutableStateOf(false) }
     var evidenceToDelete by remember { mutableStateOf<EvidenceHistoryEntity?>(null) }
 
@@ -69,13 +71,13 @@ fun GalleryScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Local Evidence Gallery",
+                            text = "Evidence Gallery",
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                             color = Slate900
                         )
                         Text(
-                            text = "Stored on device • Cryptographically verifiable",
+                            text = "Locally stored • Verifiable digital proof",
                             style = MaterialTheme.typography.labelSmall,
                             color = Slate500
                         )
@@ -83,7 +85,7 @@ fun GalleryScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Slate800)
                     }
                 },
                 actions = {
@@ -105,56 +107,86 @@ fun GalleryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            
-            // Tab Selector
+            Spacer(modifier = Modifier.height(2.dp))
+
+            // Tab Selector Pill Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(WhiteBackground, RoundedCornerShape(16.dp))
-                    .border(1.dp, Slate200, RoundedCornerShape(16.dp))
+                    .background(WhiteBackground, RoundedCornerShape(18.dp))
+                    .border(1.dp, Slate200, RoundedCornerShape(18.dp))
                     .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Tab 0: Authenticated Local Images
+                // Tab 0: Local Evidence Photos
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selectedTab == 0) BrandPrimary else Color.Transparent)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (selectedTab == 0) Brush.horizontalGradient(listOf(BrandPrimary, BrandIndigo))
+                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        )
                         .clickable { selectedTab = 0 }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Local Photos (${activeEvidence.size})",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedTab == 0) Color.White else Slate600
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.PhotoLibrary,
+                            contentDescription = null,
+                            tint = if (selectedTab == 0) Color.White else Slate500,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Local Photos (${activeEvidence.size})",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedTab == 0) Color.White else Slate700
+                        )
+                    }
                 }
 
-                // Tab 1: Pending Offline Images
+                // Tab 1: Pending Auto-Sync Queue
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (selectedTab == 1) BrandAmber else Color.Transparent)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (selectedTab == 1) Brush.horizontalGradient(listOf(BrandAmber, BrandAmber.copy(alpha = 0.85f)))
+                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        )
                         .clickable { selectedTab = 1 }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Pending Sync (${pendingCaptures.size})",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (selectedTab == 1) Color.White else Slate600
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.CloudSync,
+                            contentDescription = null,
+                            tint = if (selectedTab == 1) Color.White else Slate500,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Pending (${pendingCaptures.size})",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (selectedTab == 1) Color.White else Slate700
+                        )
+                    }
                 }
             }
 
+            // Tab Content
             if (selectedTab == 0) {
                 if (activeEvidence.isEmpty()) {
                     Box(
@@ -164,12 +196,13 @@ fun GalleryScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Card(
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(26.dp),
                             colors = CardDefaults.cardColors(containerColor = WhiteBackground),
-                            border = CardDefaults.outlinedCardBorder(),
+                            border = BorderStroke(1.dp, Slate200),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(24.dp)
+                                .padding(12.dp)
+                                .shadow(4.dp, RoundedCornerShape(26.dp))
                         ) {
                             Column(
                                 modifier = Modifier.padding(32.dp),
@@ -178,7 +211,7 @@ fun GalleryScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(72.dp)
+                                        .size(76.dp)
                                         .background(IndigoLight, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -186,25 +219,26 @@ fun GalleryScreen(
                                         Icons.Outlined.PhotoLibrary,
                                         contentDescription = null,
                                         tint = BrandPrimary,
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(38.dp)
                                     )
                                 }
                                 Text(
                                     text = "No Evidence Photos Stored Yet",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     color = Slate900
                                 )
                                 Text(
-                                    text = "Take a photograph using the GeoVerity Controlled Camera to capture cryptographically authenticated evidence.",
+                                    text = "Take a photograph using the Controlled Camera to capture cryptographically authenticated evidence with tamper-proof geolocation.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Slate500,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                                 Button(
                                     onClick = onNavigateToCapture,
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
+                                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
                                 ) {
                                     Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -214,12 +248,13 @@ fun GalleryScreen(
                         }
                     }
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(1),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.fillMaxSize()
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
                     ) {
-                        items(activeEvidence) { item ->
+                        items(activeEvidence, key = { it.verificationId }) { item ->
                             EvidenceImageCard(
                                 evidence = item,
                                 onView = { onNavigateToViewer(item.verificationId) },
@@ -247,6 +282,8 @@ fun GalleryScreen(
                                 }
                             )
                         }
+
+                        item { Spacer(modifier = Modifier.height(16.dp)) }
                     }
                 }
             } else {
@@ -258,35 +295,57 @@ fun GalleryScreen(
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        Card(
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(containerColor = WhiteBackground),
+                            border = BorderStroke(1.dp, Slate200),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .background(EmeraldLight, CircleShape),
-                                contentAlignment = Alignment.Center
+                            Column(
+                                modifier = Modifier.padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
-                                Icon(Icons.Outlined.CloudDone, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(32.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(68.dp)
+                                        .background(EmeraldLight, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Outlined.CloudDone, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(36.dp))
+                                }
+                                Text(
+                                    text = "All Captures Synchronized!",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Slate900
+                                )
+                                Text(
+                                    text = "All evidence is fully authenticated and notarized on the authority server ledger.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Slate500,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
                             }
-                            Text(text = "All captures are fully synchronized with server authority!", style = MaterialTheme.typography.bodyMedium, color = Slate600)
                         }
                     }
                 } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(1),
+                    LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
                     ) {
-                        items(pendingCaptures) { offline ->
+                        items(pendingCaptures, key = { it.verificationId }) { offline ->
                             Card(
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(22.dp),
                                 colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .shadow(2.dp, RoundedCornerShape(20.dp)),
-                                border = CardDefaults.outlinedCardBorder()
+                                    .shadow(2.dp, RoundedCornerShape(22.dp)),
+                                border = BorderStroke(1.dp, Slate200)
                             ) {
                                 Column(
                                     modifier = Modifier.padding(18.dp),
@@ -307,6 +366,7 @@ fun GalleryScreen(
                                         Box(
                                             modifier = Modifier
                                                 .background(AmberLight, RoundedCornerShape(50.dp))
+                                                .border(1.dp, BrandAmber.copy(alpha = 0.4f), RoundedCornerShape(50.dp))
                                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                                         ) {
                                             Text(
@@ -343,64 +403,70 @@ fun GalleryScreen(
                                 }
                             }
                         }
+
+                        item { Spacer(modifier = Modifier.height(16.dp)) }
                     }
                 }
             }
-
         }
     }
 
-    // Delete Confirmation Dialog (Explaining Device Only Deletion)
+    // Delete Confirmation Dialog (Device Only Deletion)
     if (showDeleteDialog && evidenceToDelete != null) {
         val item = evidenceToDelete!!
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = BrandRose, modifier = Modifier.size(32.dp)) },
+            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = BrandRose, modifier = Modifier.size(34.dp)) },
             title = {
                 Text(
-                    text = "Delete Local Photo?",
+                    text = "Delete Local Photograph?",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.ExtraBold
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "This will permanently delete the photograph file from your mobile device storage to free up space.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Slate700
                     )
-                    Text(
-                        text = "🔒 Security Note: The server's cryptographic verification record, SHA-256 hash, and ECDSA signature will remain permanently intact on the authority server.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = BrandIndigo,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = IndigoLight.copy(alpha = 0.6f))
+                    ) {
+                        Text(
+                            text = "🔒 Security Note: The server's cryptographic verification record, SHA-256 hash, and ECDSA signature remain permanently intact on the authority server ledger.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = IndigoDark,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         coroutineScope.launch {
-                            // 1. Delete physical JPEG file from storage
                             val file = resolveImageFile(context, item.localImagePath, item.verificationId)
                             if (file != null && file.exists()) {
                                 file.delete()
                             }
-                            // 2. Mark local deleted in Room DB
                             db.evidenceHistoryDao().markLocalDeleted(item.verificationId)
                             showDeleteDialog = false
                             evidenceToDelete = null
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandRose)
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandRose),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Delete from Device", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel", color = Slate600)
+                    Text("Cancel", color = Slate600, fontWeight = FontWeight.SemiBold)
                 }
             },
             containerColor = WhiteBackground,
@@ -409,7 +475,7 @@ fun GalleryScreen(
     }
 }
 
-private fun resolveImageFile(context: android.content.Context, localImagePath: String?, verificationId: String): File? {
+private fun resolveImageFile(context: Context, localImagePath: String?, verificationId: String): File? {
     if (localImagePath != null) {
         val f = File(localImagePath)
         if (f.exists()) return f
@@ -433,7 +499,7 @@ private fun EvidenceImageCard(
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
-    var loadedBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var loadedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val isPendingSync = evidence.signatureStatus == "PENDING_SYNC"
 
     LaunchedEffect(evidence.localImagePath, evidence.verificationId) {
@@ -450,12 +516,12 @@ private fun EvidenceImageCard(
         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(3.dp, RoundedCornerShape(24.dp)),
-        border = CardDefaults.outlinedCardBorder()
+            .shadow(3.dp, RoundedCornerShape(24.dp), spotColor = BrandIndigo.copy(alpha = 0.12f)),
+        border = BorderStroke(1.dp, Slate200)
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             
-            // Image Thumbnail Container
+            // Image Thumbnail Container with overlay
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -511,6 +577,32 @@ private fun EvidenceImageCard(
                         )
                     }
                 }
+
+                // Bottom gradient scrim showing tap to zoom
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                            )
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(Icons.Default.ZoomIn, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Text(
+                            text = "Tap to view full resolution & proof",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
 
             // Location & Pincode info
@@ -548,34 +640,37 @@ private fun EvidenceImageCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // View Button
-                OutlinedButton(
+                Button(
                     onClick = onView,
                     shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandPrimary)
+                    modifier = Modifier.weight(1.2f),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
                 ) {
                     Icon(Icons.Outlined.Visibility, contentDescription = "View", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "View", fontWeight = FontWeight.SemiBold)
+                    Text(text = "View", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
                 // Share Button
                 OutlinedButton(
                     onClick = onShare,
                     shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandIndigo)
+                    modifier = Modifier.weight(1.2f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandIndigo),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
                 ) {
                     Icon(Icons.Outlined.Share, contentDescription = "Share", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Share", fontWeight = FontWeight.SemiBold)
+                    Text(text = "Share", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
                 // Delete Button
                 OutlinedButton(
                     onClick = onDelete,
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandRose)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandRose),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
                 ) {
                     Icon(Icons.Outlined.Delete, contentDescription = "Delete", modifier = Modifier.size(16.dp))
                 }

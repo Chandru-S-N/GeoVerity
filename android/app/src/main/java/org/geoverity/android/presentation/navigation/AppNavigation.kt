@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -54,26 +55,32 @@ fun AppNavigation(navController: NavHostController) {
         Screen.Settings.route
     )
 
+    val navigateToTab: (String) -> Unit = { route ->
+        if (currentRoute != route) {
+            navController.navigate(route) {
+                popUpTo(Screen.Home.route) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
+
     Scaffold(
         bottomBar = {
             if (isTopLevelRoute || currentRoute == null) {
                 NavigationBar(
                     containerColor = WhiteBackground,
-                    tonalElevation = 8.dp,
-                    modifier = Modifier.shadow(8.dp)
+                    tonalElevation = 10.dp,
+                    modifier = Modifier.shadow(12.dp)
                 ) {
                     // 1. Home
                     NavigationBarItem(
                         selected = currentRoute == Screen.Home.route,
-                        onClick = {
-                            if (currentRoute != Screen.Home.route) {
-                                navController.navigate(Screen.Home.route) {
-                                    popUpTo(Screen.Home.route) { inclusive = true }
-                                }
-                            }
-                        },
+                        onClick = { navigateToTab(Screen.Home.route) },
                         icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Home", fontWeight = FontWeight.SemiBold) },
+                        label = { Text("Home", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = BrandPrimary,
                             selectedTextColor = BrandPrimary,
@@ -84,13 +91,9 @@ fun AppNavigation(navController: NavHostController) {
                     // 2. Secure Capture
                     NavigationBarItem(
                         selected = currentRoute == Screen.SecureCapture.route,
-                        onClick = {
-                            if (currentRoute != Screen.SecureCapture.route) {
-                                navController.navigate(Screen.SecureCapture.route)
-                            }
-                        },
+                        onClick = { navigateToTab(Screen.SecureCapture.route) },
                         icon = { Icon(Icons.Default.CameraAlt, contentDescription = "Capture") },
-                        label = { Text("Capture", fontWeight = FontWeight.SemiBold) },
+                        label = { Text("Capture", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = BrandPrimary,
                             selectedTextColor = BrandPrimary,
@@ -101,13 +104,9 @@ fun AppNavigation(navController: NavHostController) {
                     // 3. Local Gallery
                     NavigationBarItem(
                         selected = currentRoute == Screen.Gallery.route,
-                        onClick = {
-                            if (currentRoute != Screen.Gallery.route) {
-                                navController.navigate(Screen.Gallery.route)
-                            }
-                        },
+                        onClick = { navigateToTab(Screen.Gallery.route) },
                         icon = { Icon(Icons.Outlined.Collections, contentDescription = "Gallery") },
-                        label = { Text("Gallery", fontWeight = FontWeight.SemiBold) },
+                        label = { Text("Gallery", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = BrandPrimary,
                             selectedTextColor = BrandPrimary,
@@ -118,17 +117,13 @@ fun AppNavigation(navController: NavHostController) {
                     // 4. Auto-Sync Queue (with live badge!)
                     NavigationBarItem(
                         selected = currentRoute == Screen.OfflineCaptures.route,
-                        onClick = {
-                            if (currentRoute != Screen.OfflineCaptures.route) {
-                                navController.navigate(Screen.OfflineCaptures.route)
-                            }
-                        },
+                        onClick = { navigateToTab(Screen.OfflineCaptures.route) },
                         icon = {
                             BadgedBox(
                                 badge = {
                                     if (pendingCount > 0) {
                                         Badge(containerColor = BrandAmber) {
-                                            Text("$pendingCount", color = Color.White)
+                                            Text("$pendingCount", color = Color.White, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
@@ -136,7 +131,7 @@ fun AppNavigation(navController: NavHostController) {
                                 Icon(Icons.Default.CloudSync, contentDescription = "Auto-Sync")
                             }
                         },
-                        label = { Text("Auto-Sync", fontWeight = FontWeight.SemiBold) },
+                        label = { Text("Auto-Sync", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = BrandPrimary,
                             selectedTextColor = BrandPrimary,
@@ -147,13 +142,9 @@ fun AppNavigation(navController: NavHostController) {
                     // 5. Security & Settings
                     NavigationBarItem(
                         selected = currentRoute == Screen.Settings.route,
-                        onClick = {
-                            if (currentRoute != Screen.Settings.route) {
-                                navController.navigate(Screen.Settings.route)
-                            }
-                        },
+                        onClick = { navigateToTab(Screen.Settings.route) },
                         icon = { Icon(Icons.Default.Shield, contentDescription = "Security") },
-                        label = { Text("Security", fontWeight = FontWeight.SemiBold) },
+                        label = { Text("Security", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = BrandPrimary,
                             selectedTextColor = BrandPrimary,
@@ -172,9 +163,9 @@ fun AppNavigation(navController: NavHostController) {
             composable(Screen.Home.route) {
                 HomeScreen(
                     onNavigateToCapture = { navController.navigate(Screen.SecureCapture.route) },
-                    onNavigateToGallery = { navController.navigate(Screen.Gallery.route) },
+                    onNavigateToGallery = { navigateToTab(Screen.Gallery.route) },
                     onNavigateToVerify = { navController.navigate(Screen.VerifyImage.route) },
-                    onNavigateToOffline = { navController.navigate(Screen.OfflineCaptures.route) },
+                    onNavigateToOffline = { navigateToTab(Screen.OfflineCaptures.route) },
                     onNavigateToHistory = { navController.navigate(Screen.EvidenceHistory.route) },
                     onNavigateToDetails = { vId -> navController.navigate("viewer/$vId") }
                 )
@@ -193,7 +184,7 @@ fun AppNavigation(navController: NavHostController) {
                 GalleryScreen(
                     onNavigateToViewer = { vId -> navController.navigate("viewer/$vId") },
                     onNavigateToCapture = { navController.navigate(Screen.SecureCapture.route) },
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navigateToTab(Screen.Home.route) }
                 )
             }
 
@@ -256,7 +247,7 @@ fun AppNavigation(navController: NavHostController) {
 
             composable(Screen.OfflineCaptures.route) {
                 OfflineCapturesScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navigateToTab(Screen.Home.route) }
                 )
             }
 
@@ -286,7 +277,7 @@ fun AppNavigation(navController: NavHostController) {
 
             composable(Screen.Settings.route) {
                 SettingsScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navigateToTab(Screen.Home.route) }
                 )
             }
 

@@ -1,9 +1,11 @@
 package org.geoverity.android.presentation.screens.gallery
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Environment
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,12 +29,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,12 +59,14 @@ fun ImageViewerScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     val coroutineScope = rememberCoroutineScope()
     val db = GeoVerityApp.instance.database
 
     var evidence by remember { mutableStateOf<EvidenceHistoryEntity?>(null) }
     var loadedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var hashCopied by remember { mutableStateOf(false) }
 
     LaunchedEffect(verificationId) {
         withContext(Dispatchers.IO) {
@@ -77,17 +84,17 @@ fun ImageViewerScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Evidence Viewer", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text("Authentic Digital Evidence", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontWeight = FontWeight.SemiBold)
+                        Text("Evidence Viewer", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Slate900)
+                        Text("High-Resolution Authenticated Evidence", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontWeight = FontWeight.Bold)
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Slate800)
                     }
                 },
                 actions = {
-                    // Share Action
+                    // Share Action Button
                     IconButton(onClick = {
                         val file = resolveViewerImageFile(context, evidence?.localImagePath, verificationId)
                         if (file != null && file.exists()) {
@@ -102,10 +109,10 @@ fun ImageViewerScreen(
                             context.startActivity(Intent.createChooser(shareIntent, "Share Original Evidence File"))
                         }
                     }) {
-                        Icon(Icons.Outlined.Share, contentDescription = "Share", tint = BrandEmerald)
+                        Icon(Icons.Outlined.Share, contentDescription = "Share", tint = BrandIndigo)
                     }
 
-                    // Delete Action
+                    // Delete Action Button
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Outlined.Delete, contentDescription = "Delete", tint = BrandRose)
                     }
@@ -119,20 +126,21 @@ fun ImageViewerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 18.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            
+            Spacer(modifier = Modifier.height(2.dp))
+
             // 1. Interactive Zoomable Image Preview Card
             Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Black),
+                shape = RoundedCornerShape(26.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(380.dp)
-                    .shadow(4.dp, RoundedCornerShape(24.dp)),
-                border = CardDefaults.outlinedCardBorder()
+                    .height(390.dp)
+                    .shadow(6.dp, RoundedCornerShape(26.dp), spotColor = Color.Black.copy(alpha = 0.3f)),
+                border = BorderStroke(1.dp, Slate800)
             ) {
                 loadedBitmap?.let { bmp ->
                     ZoomableImageView(
@@ -148,39 +156,57 @@ fun ImageViewerScreen(
                 }
             }
 
-            // 2. Cryptographic Proof Specifications Drawer (Clean, NO explicit verification IDs)
+            // 2. Cryptographic Proof Specifications Drawer
             evidence?.let { ev ->
                 Card(
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = CardDefaults.cardColors(containerColor = WhiteBackground),
-                    modifier = Modifier.fillMaxWidth(),
-                    border = CardDefaults.outlinedCardBorder()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(3.dp, RoundedCornerShape(26.dp), spotColor = BrandIndigo.copy(alpha = 0.12f)),
+                    border = BorderStroke(1.dp, Slate200)
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Cryptographic Proof Specifications",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Slate900
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(EmeraldLight, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(18.dp))
+                                }
+                                Text(
+                                    text = "CRYPTOGRAPHIC PROOF",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = BrandEmerald,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+
                             Box(
                                 modifier = Modifier
                                     .background(EmeraldLight, RoundedCornerShape(50.dp))
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    .border(1.dp, BrandEmerald.copy(alpha = 0.4f), RoundedCornerShape(50.dp))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = "VERIFIED",
+                                    text = if (ev.signatureStatus == "VALID") "VERIFIED" else "QUEUED",
                                     color = EmeraldDark,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold
                                 )
                             }
                         }
@@ -189,55 +215,104 @@ fun ImageViewerScreen(
 
                         ProofField(
                             label = "Digital Evidence Status",
-                            value = "Authentic • Signed by Authority Server",
+                            value = if (ev.signatureStatus == "VALID") "Authentic • Signed by Server Authority" else "Stored on Device • Auto-Sync Active",
                             isHighlighted = true,
-                            isSuccess = true
+                            isSuccess = ev.signatureStatus == "VALID"
                         )
-                        ProofField(label = "Detailed Location & Pincode", value = ev.locationName)
-                        ProofField(label = "GPS Coordinates", value = String.format(Locale.US, "%.6f, %.6f", ev.latitude, ev.longitude))
+
+                        ProofField(
+                            label = "Detailed Location & Pincode",
+                            value = ev.locationName
+                        )
+
+                        ProofField(
+                            label = "GPS Coordinates",
+                            value = String.format(Locale.US, "%.6f, %.6f", ev.latitude, ev.longitude)
+                        )
+
                         ProofField(
                             label = "Authoritative Timestamp",
                             value = SimpleDateFormat("dd MMMM yyyy, hh:mm:ss a (z)", Locale.US).format(Date(ev.trustedTimestamp))
                         )
-                        ProofField(label = "Composite SHA-256 Hash", value = ev.sha256Hash, isMonospace = true)
+
+                        // Composite SHA-256 Hash box with Copy button
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "Composite SHA-256 Hash", style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (hashCopied) "Copied!" else "Copy Hash",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (hashCopied) BrandEmerald else BrandPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.clickable {
+                                        clipboardManager.setText(AnnotatedString(ev.sha256Hash))
+                                        hashCopied = true
+                                    }
+                                )
+                            }
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Slate100),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = ev.sha256Hash,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Slate900,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    modifier = Modifier.padding(10.dp)
+                                )
+                            }
+                        }
+
                         ProofField(
-                            label = "Digital Signature Status",
-                            value = if (ev.signatureStatus == "VALID") "VALID (ECDSA NIST P-256 Verified)" else "PENDING_SYNC (Offline Queue)",
+                            label = "Digital Signature Scheme",
+                            value = if (ev.signatureStatus == "VALID") "ECDSA NIST P-256 (SHA256withECDSA Validated)" else "Pending server synchronization",
                             isSuccess = ev.signatureStatus == "VALID"
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 
-    // Delete Confirmation Dialog (Deletes from local device only)
+    // Delete Confirmation Dialog
     if (showDeleteDialog && evidence != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = BrandRose, modifier = Modifier.size(32.dp)) },
+            icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = BrandRose, modifier = Modifier.size(34.dp)) },
             title = {
                 Text(
                     text = "Delete Local Photograph?",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.ExtraBold
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "This will delete the high-resolution photograph file from your mobile device memory.",
+                        text = "This will permanently delete the photograph file from your mobile device storage to free up space.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Slate700
                     )
-                    Text(
-                        text = "🔒 Security Note: The server's authoritative cryptographic proof, SHA-256 composite hash, and ECDSA signature will remain permanently intact on the authority server.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = BrandIndigo,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = IndigoLight.copy(alpha = 0.6f))
+                    ) {
+                        Text(
+                            text = "🔒 Security Note: The server's cryptographic verification record, SHA-256 composite hash, and ECDSA signature will remain permanently intact on the authority server ledger.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = IndigoDark,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -253,14 +328,15 @@ fun ImageViewerScreen(
                             onNavigateBack()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandRose)
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandRose),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Delete from Device", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel", color = Slate600)
+                    Text("Cancel", color = Slate600, fontWeight = FontWeight.SemiBold)
                 }
             },
             containerColor = WhiteBackground,
@@ -321,7 +397,7 @@ fun ZoomableImageView(
             contentScale = ContentScale.Fit
         )
 
-        // Floating Zoom Controls overlay (+ / - / scale indicator)
+        // Floating Zoom Controls overlay
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -361,7 +437,7 @@ fun ZoomableImageView(
     }
 }
 
-private fun resolveViewerImageFile(context: android.content.Context, localImagePath: String?, verificationId: String): File? {
+private fun resolveViewerImageFile(context: Context, localImagePath: String?, verificationId: String): File? {
     if (localImagePath != null) {
         val f = File(localImagePath)
         if (f.exists()) return f
@@ -381,22 +457,20 @@ private fun resolveViewerImageFile(context: android.content.Context, localImageP
 private fun ProofField(
     label: String,
     value: String,
-    isMonospace: Boolean = false,
     isHighlighted: Boolean = false,
     isSuccess: Boolean = false
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.SemiBold)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.Bold)
         Text(
             text = value,
-            style = if (isMonospace) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium,
             color = when {
                 isSuccess -> EmeraldDark
                 isHighlighted -> BrandIndigo
                 else -> Slate900
             },
-            fontWeight = if (isHighlighted || isSuccess) FontWeight.Bold else FontWeight.Medium,
-            fontFamily = if (isMonospace) androidx.compose.ui.text.font.FontFamily.Monospace else null
+            fontWeight = if (isHighlighted || isSuccess) FontWeight.Bold else FontWeight.Medium
         )
     }
 }

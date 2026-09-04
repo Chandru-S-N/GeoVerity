@@ -74,10 +74,10 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(6.dp)) }
+            item { Spacer(modifier = Modifier.height(4.dp)) }
 
             // 1. App Header & Brand Banner
             item {
@@ -99,7 +99,7 @@ fun HomeScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(52.dp)
+                                    .size(54.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(Brush.linearGradient(listOf(BrandIndigo, BrandPurple))),
                                 contentAlignment = Alignment.Center
@@ -163,9 +163,9 @@ fun HomeScreen(
                             }
                         }
 
-                        // 2. Interactive Server Connection Status Card with 1-Tap Auto-Discover
+                        // Interactive Server Connection Status Card with 1-Tap Auto-Discover
                         Card(
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (serverHealth.isConnected) EmeraldLight.copy(alpha = 0.6f) else AmberLight.copy(alpha = 0.6f)
                             ),
@@ -188,7 +188,8 @@ fun HomeScreen(
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.weight(1f)
                                     ) {
                                         Icon(
                                             if (serverHealth.isConnected) Icons.Default.CloudDone else Icons.Default.CloudOff,
@@ -237,7 +238,7 @@ fun HomeScreen(
                                                 }
                                             },
                                             enabled = !isAutoScanning,
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = RoundedCornerShape(12.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = BrandIndigo),
                                             modifier = Modifier.weight(1f),
                                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
@@ -255,10 +256,10 @@ fun HomeScreen(
 
                                         OutlinedButton(
                                             onClick = { showServerConfigDialog = true },
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = RoundedCornerShape(12.dp),
                                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                                         ) {
-                                            Text("Configure IP", fontSize = 11.sp)
+                                            Text("Configure IP", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                                         }
                                     }
 
@@ -276,7 +277,7 @@ fun HomeScreen(
                 }
             }
 
-            // 3. Primary Hero Action Card: Capture Authenticated Digital Evidence
+            // 2. Primary Hero Action Card: Capture Authenticated Digital Evidence
             item {
                 Card(
                     shape = RoundedCornerShape(26.dp),
@@ -308,8 +309,8 @@ fun HomeScreen(
                                 Text(
                                     text = "CONTROLLED CAMERA",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.8f),
-                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontWeight = FontWeight.ExtraBold,
                                     letterSpacing = 1.sp
                                 )
                                 Text(
@@ -319,9 +320,9 @@ fun HomeScreen(
                                     fontWeight = FontWeight.ExtraBold
                                 )
                                 Text(
-                                    text = "Direct server authentication with automated offline sync.",
+                                    text = "Direct server notarization with automatic offline queue.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.85f)
+                                    color = Color.White.copy(alpha = 0.9f)
                                 )
                             }
 
@@ -344,7 +345,7 @@ fun HomeScreen(
                 }
             }
 
-            // 4. Quick Stats 3-Card Grid
+            // 3. Quick Stats 3-Card Grid
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -352,136 +353,153 @@ fun HomeScreen(
                 ) {
                     // Total Authenticated
                     Card(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                         modifier = Modifier
                             .weight(1f)
-                            .shadow(2.dp, RoundedCornerShape(18.dp))
+                            .shadow(2.dp, RoundedCornerShape(20.dp))
                             .clickable { onNavigateToGallery() },
                         border = BorderStroke(1.dp, Slate200)
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "Verified", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                                Text(text = "Verified", style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.Bold)
                                 Icon(Icons.Default.Verified, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(16.dp))
                             }
                             Text(text = "$totalCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Slate900)
-                            Text(text = "Saved on Device", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontSize = 10.sp)
+                            Text(text = "Saved on Device", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
                     // Local Photos on Phone
                     Card(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                         modifier = Modifier
                             .weight(1f)
-                            .shadow(2.dp, RoundedCornerShape(18.dp))
+                            .shadow(2.dp, RoundedCornerShape(20.dp))
                             .clickable { onNavigateToGallery() },
                         border = BorderStroke(1.dp, Slate200)
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "Gallery", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                                Text(text = "Gallery", style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.Bold)
                                 Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(16.dp))
                             }
                             Text(text = "$localCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Slate900)
-                            Text(text = "Local Storage", style = MaterialTheme.typography.labelSmall, color = Slate600, fontSize = 10.sp)
+                            Text(text = "Local Storage", style = MaterialTheme.typography.labelSmall, color = Slate600, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                         }
                     }
 
                     // Pending Offline Queue
                     Card(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                         modifier = Modifier
                             .weight(1f)
-                            .shadow(2.dp, RoundedCornerShape(18.dp))
+                            .shadow(2.dp, RoundedCornerShape(20.dp))
                             .clickable { onNavigateToOffline() },
                         border = BorderStroke(1.dp, Slate200)
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
+                            modifier = Modifier.padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(text = "Auto-Sync", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                                Text(text = "Auto-Sync", style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.Bold)
                                 Icon(Icons.Default.CloudSync, contentDescription = null, tint = if (pendingCount > 0) BrandAmber else BrandEmerald, modifier = Modifier.size(16.dp))
                             }
                             Text(text = if (pendingCount > 0) "$pendingCount" else "0", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Slate900)
-                            Text(text = if (pendingCount > 0) "Pending Sync" else "Up to date", style = MaterialTheme.typography.labelSmall, color = if (pendingCount > 0) AmberDark else BrandEmerald, fontSize = 10.sp)
+                            Text(text = if (pendingCount > 0) "Pending Sync" else "Up to date", style = MaterialTheme.typography.labelSmall, color = if (pendingCount > 0) AmberDark else BrandEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
-            // 5. Quick Sync Alert Banner if captures are pending
-            if (pendingCount > 0) {
-                item {
+            // 4. Quick Action Row: Verify Image & View Gallery
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Third-party verification button
                     Card(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
-                        border = BorderStroke(1.dp, BrandAmber.copy(alpha = 0.5f)),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(2.dp, RoundedCornerShape(18.dp))
+                            .weight(1f)
+                            .shadow(2.dp, RoundedCornerShape(20.dp))
+                            .clickable { onNavigateToVerify() },
+                        border = BorderStroke(1.dp, Slate200)
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(IndigoLight, RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.CloudQueue, contentDescription = null, tint = BrandAmber, modifier = Modifier.size(24.dp))
-                                Column {
-                                    Text(
-                                        text = "$pendingCount Offline Captures Pending",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Slate900
-                                    )
-                                    Text(
-                                        text = "Automatic background sync active",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Slate500
-                                    )
-                                }
+                                Icon(Icons.Default.CheckCircleOutline, contentDescription = null, tint = BrandIndigo, modifier = Modifier.size(20.dp))
                             }
+                            Column {
+                                Text(text = "Verify Photo", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Slate900)
+                                Text(text = "Third-party check", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            }
+                        }
+                    }
 
-                            Button(
-                                onClick = onNavigateToOffline,
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = BrandAmber),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    // Open gallery button
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = WhiteBackground),
+                        modifier = Modifier
+                            .weight(1f)
+                            .shadow(2.dp, RoundedCornerShape(20.dp))
+                            .clickable { onNavigateToGallery() },
+                        border = BorderStroke(1.dp, Slate200)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(EmeraldLight, RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("Sync Queue", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Icon(Icons.Outlined.Collections, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(20.dp))
+                            }
+                            Column {
+                                Text(text = "Local Gallery", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Slate900)
+                                Text(text = "View all photos", style = MaterialTheme.typography.labelSmall, color = Slate500)
                             }
                         }
                     }
                 }
             }
 
-            // 6. Recent Authentications Section Header (Clean labels, NO verification ID text)
+            // 5. Recent Authentications Section Header
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -491,7 +509,7 @@ fun HomeScreen(
                     Text(
                         text = "Recent Authentications",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = Slate900
                     )
                     if (recentEvidence.isNotEmpty()) {
@@ -506,11 +524,11 @@ fun HomeScreen(
                 }
             }
 
-            // 7. Recent Evidence List Items (Showing clean metadata without raw verification IDs)
+            // 6. Recent Evidence List Items
             if (recentEvidence.isEmpty()) {
                 item {
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(22.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                         modifier = Modifier.fillMaxWidth(),
                         border = BorderStroke(1.dp, Slate200)
@@ -518,24 +536,24 @@ fun HomeScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(24.dp),
+                                .padding(28.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(Icons.Outlined.Camera, contentDescription = null, tint = Slate400, modifier = Modifier.size(36.dp))
-                            Text(text = "No evidence captured yet", style = MaterialTheme.typography.bodySmall, color = Slate500)
+                            Icon(Icons.Outlined.Camera, contentDescription = null, tint = Slate400, modifier = Modifier.size(40.dp))
+                            Text(text = "No evidence captured yet", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Slate600)
                             Text(text = "Tap 'Capture & Sign Geotag' above to take your first photo", style = MaterialTheme.typography.labelSmall, color = Slate400)
                         }
                     }
                 }
             } else {
-                items(recentEvidence.take(4)) { item ->
+                items(recentEvidence.take(4), key = { it.verificationId }) { item ->
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(22.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(2.dp, RoundedCornerShape(20.dp))
+                            .shadow(2.dp, RoundedCornerShape(22.dp))
                             .clickable { onNavigateToDetails(item.verificationId) },
                         border = BorderStroke(1.dp, Slate200)
                     ) {
@@ -553,7 +571,7 @@ fun HomeScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(44.dp)
+                                        .size(46.dp)
                                         .background(
                                             if (item.signatureStatus == "VALID") EmeraldLight else AmberLight,
                                             RoundedCornerShape(14.dp)
@@ -564,7 +582,7 @@ fun HomeScreen(
                                         if (item.signatureStatus == "VALID") Icons.Default.Verified else Icons.Default.CloudSync,
                                         contentDescription = null,
                                         tint = if (item.signatureStatus == "VALID") BrandEmerald else BrandAmber,
-                                        modifier = Modifier.size(22.dp)
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
 
@@ -577,10 +595,10 @@ fun HomeScreen(
                                         maxLines = 1
                                     )
                                     Text(
-                                        text = if (item.signatureStatus == "VALID") "🛡️ Notarized Evidence • Cryptographically Verified" else "📦 Stored on Device • Auto-Sync Active",
+                                        text = if (item.signatureStatus == "VALID") "🛡️ Authentic • Signed by Server" else "📦 Saved on Device • Auto-Sync Active",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = if (item.signatureStatus == "VALID") EmeraldDark else AmberDark,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(Date(item.trustedTimestamp)),
@@ -596,11 +614,11 @@ fun HomeScreen(
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(20.dp)) }
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 
-    // 8. Server Authority Configuration Modal Dialog
+    // Server Authority Configuration Modal Dialog
     if (showServerConfigDialog) {
         var inputUrl by remember { mutableStateOf(secureStorage.getServerUrl()) }
         var isTesting by remember { mutableStateOf(false) }
@@ -609,12 +627,12 @@ fun HomeScreen(
 
         AlertDialog(
             onDismissRequest = { showServerConfigDialog = false },
-            icon = { Icon(Icons.Default.Dns, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(32.dp)) },
+            icon = { Icon(Icons.Default.Dns, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(34.dp)) },
             title = {
                 Text(
-                    text = "Server Authority Address",
+                    text = "Authority Server Address",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.ExtraBold
                 )
             },
             text = {
@@ -634,7 +652,7 @@ fun HomeScreen(
                         label = { Text("Server Base URL") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp)
                     )
 
                     // 1-Tap Wi-Fi Auto-Scan Button
@@ -655,12 +673,12 @@ fun HomeScreen(
                         },
                         enabled = !isTesting,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = BrandIndigo)
                     ) {
-                        Icon(Icons.Default.WifiFind, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("AUTO-SCAN LOCAL WI-FI SUBNET")
+                        Icon(Icons.Default.WifiFind, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("AUTO-SCAN LOCAL WI-FI SUBNET", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
                     // Test Connection Button
@@ -676,16 +694,16 @@ fun HomeScreen(
                         },
                         enabled = !isTesting && inputUrl.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         if (isTesting) {
                             CircularProgressIndicator(color = BrandPrimary, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Pinging Server...")
                         } else {
-                            Icon(Icons.Default.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Bolt, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("TEST CONNECTION NOW")
+                            Text("TEST CONNECTION NOW", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                     }
 
@@ -702,7 +720,7 @@ fun HomeScreen(
                     // Test Result Banner
                     testResult?.let { res ->
                         Card(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (res.isSuccess) EmeraldLight else RoseLight
                             ),
@@ -728,7 +746,7 @@ fun HomeScreen(
                         }
                         showServerConfigDialog = false
                     },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandPrimary)
                 ) {
                     Text("Save & Apply", fontWeight = FontWeight.Bold)
@@ -736,7 +754,7 @@ fun HomeScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showServerConfigDialog = false }) {
-                    Text("Cancel", color = Slate600)
+                    Text("Cancel", color = Slate600, fontWeight = FontWeight.SemiBold)
                 }
             },
             containerColor = WhiteBackground,
