@@ -77,13 +77,29 @@ public class AdminApiController {
     }
 
     @GetMapping("/verification-records")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @Operation(summary = "Query verification records", description = "Returns paginated list of authenticated cryptographic evidence records.")
-    public ResponseEntity<Page<VerificationRecord>> getVerificationRecords(
+    public ResponseEntity<Page<VerificationRecordDto>> getVerificationRecords(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Page<VerificationRecord> records = verificationRecordRepository.findAllByOrderByCreatedAtDesc(
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
-        return ResponseEntity.ok(records);
+
+        Page<VerificationRecordDto> dtos = records.map(r -> VerificationRecordDto.builder()
+                .id(r.getId())
+                .verificationId(r.getVerificationId())
+                .sha256Hash(r.getSha256Hash())
+                .canonicalMetadata(r.getCanonicalMetadata())
+                .trustedServerTimestamp(r.getTrustedServerTimestamp())
+                .ecdsaSignature(r.getEcdsaSignature())
+                .deviceId(r.getDeviceId())
+                .apiClientName(r.getApiClient() != null ? r.getApiClient().getClientName() : "Unknown")
+                .status(r.getStatus())
+                .createdAt(r.getCreatedAt())
+                .updatedAt(r.getUpdatedAt())
+                .build());
+
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/audit-logs")
