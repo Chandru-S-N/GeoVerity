@@ -39,9 +39,16 @@ public class VerificationRecord {
     @Column(name = "device_id", nullable = false, length = 128)
     private String deviceId;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "api_client_id", nullable = false)
     private ApiClient apiClient;
+
+    @Transient
+    @com.fasterxml.jackson.annotation.JsonProperty("apiClientName")
+    public String getApiClientName() {
+        return apiClient != null ? apiClient.getClientName() : null;
+    }
 
     @Column(nullable = false, length = 32)
     @Builder.Default
