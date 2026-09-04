@@ -33,8 +33,8 @@ class SecureStorage(context: Context) {
 
     fun getServerUrl(): String {
         val saved = sharedPreferences.getString(KEY_SERVER_URL, null)
-        if (saved.isNullOrBlank() || saved.contains("10.0.2.2") || saved.contains("localhost") || saved.contains("trycloudflare.com")) {
-            return "https://geoverity-backend.onrender.com"
+        if (saved.isNullOrBlank() || saved.contains("10.0.2.2") || saved.contains("localhost") || saved.contains("onrender.com")) {
+            return "https://maker-important-radiation-wider.trycloudflare.com"
         }
         return saved
     }
