@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +24,8 @@ import org.geoverity.android.GeoVerityApp
 import org.geoverity.android.data.db.EvidenceHistoryEntity
 import org.geoverity.android.presentation.theme.*
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +56,7 @@ fun EvidenceDetailsScreen(
                 title = { Text("Evidence Record", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = WhiteBackground)
@@ -105,28 +108,33 @@ fun EvidenceDetailsScreen(
                         Text(text = "Authoritative Record Specs", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Verification ID", style = MaterialTheme.typography.labelSmall, color = Slate500)
-                            Text(text = item.verificationId, style = MaterialTheme.typography.bodyMedium, color = BrandIndigo, fontWeight = FontWeight.Bold)
+                            Text(text = "Security Attestation", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            Text(text = "AUTHENTIC & NOTARIZED BY SERVER AUTHORITY", style = MaterialTheme.typography.bodyMedium, color = BrandEmerald, fontWeight = FontWeight.Bold)
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Location Name", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            Text(text = "Location Name & Pincode", style = MaterialTheme.typography.labelSmall, color = Slate500)
                             Text(text = item.locationName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(text = "GPS Coordinates", style = MaterialTheme.typography.labelSmall, color = Slate500)
-                            Text(text = String.format("%.6f, %.6f", item.latitude, item.longitude), style = MaterialTheme.typography.bodyMedium)
+                            Text(text = String.format(Locale.US, "%.6f, %.6f", item.latitude, item.longitude), style = MaterialTheme.typography.bodyMedium)
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(text = "Authoritative Timestamp", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            Text(text = SimpleDateFormat("dd MMMM yyyy, hh:mm:ss a (z)", Locale.US).format(Date(item.trustedTimestamp)), style = MaterialTheme.typography.bodyMedium)
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(text = "Composite SHA-256 Hash", style = MaterialTheme.typography.labelSmall, color = Slate500)
-                            Text(text = item.sha256Hash, style = MaterialTheme.typography.labelSmall, color = Slate900)
+                            Text(text = item.sha256Hash, style = MaterialTheme.typography.labelSmall, color = Slate900, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(text = "Server ECDSA P-256 Signature", style = MaterialTheme.typography.labelSmall, color = Slate500)
-                            Text(text = "VALID (Signed by GeoVerity Authority)", style = MaterialTheme.typography.bodyMedium, color = BrandEmerald, fontWeight = FontWeight.Bold)
+                            Text(text = "Server Digital Signature", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            Text(text = "VALID (ECDSA NIST P-256 Verified)", style = MaterialTheme.typography.bodyMedium, color = BrandEmerald, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

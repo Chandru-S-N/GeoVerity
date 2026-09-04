@@ -5,7 +5,7 @@ import java.util.regex.Pattern
 
 object JpegMarkerReader {
 
-    private val VERIFICATION_ID_PATTERN = Pattern.compile("SGA-[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")
+    private val UUID_PATTERN = Pattern.compile("(?:SGA-)?[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")
     private const val MARKER_HEADER = "GEOVERITY:"
 
     fun extractVerificationId(jpegBytes: ByteArray): String? {
@@ -32,7 +32,7 @@ object JpegMarkerReader {
                         return segmentStr.substring(MARKER_HEADER.length).trim()
                     }
 
-                    val matcher = VERIFICATION_ID_PATTERN.matcher(segmentStr)
+                    val matcher = UUID_PATTERN.matcher(segmentStr)
                     if (matcher.find()) {
                         return matcher.group()
                     }
@@ -49,7 +49,7 @@ object JpegMarkerReader {
     private fun fallbackRegexScan(bytes: ByteArray): String? {
         val scanLen = bytes.size.coerceAtMost(65536)
         val chunk = String(bytes, 0, scanLen, StandardCharsets.ISO_8859_1)
-        val matcher = VERIFICATION_ID_PATTERN.matcher(chunk)
+        val matcher = UUID_PATTERN.matcher(chunk)
         return if (matcher.find()) matcher.group() else null
     }
 }

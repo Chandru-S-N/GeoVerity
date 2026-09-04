@@ -1,5 +1,6 @@
 package org.geoverity.android.presentation.screens.history
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -7,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.*
@@ -18,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.geoverity.android.GeoVerityApp
 import org.geoverity.android.presentation.theme.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,10 +35,10 @@ fun EvidenceHistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Evidence History", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
+                title = { Text("Evidence Registry", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = WhiteBackground)
@@ -85,6 +89,7 @@ fun EvidenceHistoryScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(
+                                modifier = Modifier.weight(1f),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(14.dp)
                             ) {
@@ -99,18 +104,20 @@ fun EvidenceHistoryScreen(
 
                                 Column {
                                     Text(
-                                        text = item.verificationId.take(16) + "...",
+                                        text = item.locationName,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = Slate900
+                                        color = Slate900,
+                                        maxLines = 1
                                     )
                                     Text(
-                                        text = item.locationName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = Slate500
+                                        text = "Authentic Digital Evidence",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = BrandEmerald,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        text = java.text.SimpleDateFormat("dd MMM yyyy, hh:mm a", java.util.Locale.US).format(java.util.Date(item.trustedTimestamp)),
+                                        text = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(Date(item.trustedTimestamp)),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = Slate500
                                     )

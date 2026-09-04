@@ -394,10 +394,10 @@ export const VerificationPortal: React.FC = () => {
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-1">
                       <div className="flex items-center space-x-2 text-slate-500 text-xs font-semibold">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Verification ID</span>
+                        <span>Cryptographic Attestation</span>
                       </div>
-                      <p className="font-bold font-mono text-xs text-indigo-700">{result.verificationId}</p>
-                      <p className="text-xs text-slate-400">Indexed Registry Record</p>
+                      <p className="font-bold text-xs text-emerald-700">NOTARIZED AUTHENTIC EVIDENCE</p>
+                      <p className="text-xs text-slate-400">ECDSA P-256 Server Authority Sealed</p>
                     </div>
                   </div>
 

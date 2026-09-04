@@ -109,7 +109,7 @@ fun GalleryScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             
-            // Tab Selector (Clean White Card with Modern Colorful Active Pills)
+            // Tab Selector
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -129,7 +129,7 @@ fun GalleryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Local Gallery (${activeEvidence.size})",
+                        text = "Local Photos (${activeEvidence.size})",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (selectedTab == 0) Color.White else Slate600
@@ -147,7 +147,7 @@ fun GalleryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Pending Queue (${pendingCaptures.size})",
+                        text = "Pending Sync (${pendingCaptures.size})",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (selectedTab == 1) Color.White else Slate600
@@ -234,8 +234,8 @@ fun GalleryScreen(
                                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                             type = "image/jpeg"
                                             putExtra(Intent.EXTRA_STREAM, uri)
-                                            putExtra(Intent.EXTRA_SUBJECT, "GeoVerity Evidence ${item.verificationId}")
-                                            putExtra(Intent.EXTRA_TEXT, "GeoVerity Authenticated Digital Evidence\nVerification ID: ${item.verificationId}\nLocation: ${item.locationName}\nGPS: ${item.latitude}, ${item.longitude}\n(Note: Share as Document/File to preserve exact cryptographic bits).")
+                                            putExtra(Intent.EXTRA_SUBJECT, "GeoVerity Authenticated Evidence")
+                                            putExtra(Intent.EXTRA_TEXT, "GeoVerity Authenticated Digital Evidence\nLocation: ${item.locationName}\nGPS: ${item.latitude}, ${item.longitude}\n(Note: Share as Document/File to preserve exact cryptographic bits).")
                                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
                                         context.startActivity(Intent.createChooser(shareIntent, "Share Original Evidence File"))
@@ -298,7 +298,7 @@ fun GalleryScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = offline.verificationId.take(16) + "...",
+                                            text = "Encrypted Offline Geotag",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = Slate900

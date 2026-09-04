@@ -56,12 +56,14 @@ fun HomeScreen(
     val recentEvidence by db.evidenceHistoryDao().getActiveLocalEvidence().collectAsState(initial = emptyList())
 
     var showServerConfigDialog by remember { mutableStateOf(false) }
+    var isAutoScanning by remember { mutableStateOf(false) }
+    var scanStatusMessage by remember { mutableStateOf<String?>(null) }
 
-    // Periodically check server connectivity every 10 seconds
+    // Periodically check server connectivity every 8 seconds
     LaunchedEffect(Unit) {
         while (true) {
             ServerHealthChecker.checkHealth()
-            delay(10000)
+            delay(8000)
         }
     }
 
@@ -73,23 +75,23 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(10.dp)) }
+            item { Spacer(modifier = Modifier.height(6.dp)) }
 
             // 1. App Header & Brand Banner
             item {
                 Card(
                     shape = RoundedCornerShape(28.dp),
                     colors = CardDefaults.cardColors(containerColor = WhiteBackground),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(Slate200, Slate100))),
+                    border = BorderStroke(1.dp, Slate200),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(6.dp, RoundedCornerShape(28.dp), spotColor = BrandIndigo.copy(alpha = 0.15f))
+                        .shadow(4.dp, RoundedCornerShape(28.dp), spotColor = BrandIndigo.copy(alpha = 0.12f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(22.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -97,8 +99,8 @@ fun HomeScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(54.dp)
-                                    .clip(RoundedCornerShape(18.dp))
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(16.dp))
                                     .background(Brush.linearGradient(listOf(BrandIndigo, BrandPurple))),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -106,11 +108,11 @@ fun HomeScreen(
                                     imageVector = Icons.Default.Shield,
                                     contentDescription = "Logo",
                                     tint = Color.White,
-                                    modifier = Modifier.size(30.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
 
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "GeoVerity",
                                     style = MaterialTheme.typography.headlineMedium,
@@ -119,98 +121,156 @@ fun HomeScreen(
                                 )
                                 Text(
                                     text = "Secure Digital Evidence Platform",
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = Slate500
                                 )
                             }
-                        }
 
-                        // 2. Interactive Server Connection Status Card (Tap to Configure IP)
-                        Card(
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (serverHealth.isConnected) EmeraldLight else RoseLight
-                            ),
-                            border = BorderStroke(
-                                1.dp,
-                                if (serverHealth.isConnected) BrandEmerald.copy(alpha = 0.3f) else BrandRose.copy(alpha = 0.3f)
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showServerConfigDialog = true }
-                        ) {
-                            Row(
+                            // Live Server Status Indicator Pill
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .background(
+                                        if (serverHealth.isConnected) EmeraldLight else AmberLight,
+                                        RoundedCornerShape(50.dp)
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (serverHealth.isConnected) BrandEmerald.copy(alpha = 0.4f) else BrandAmber.copy(alpha = 0.4f),
+                                        RoundedCornerShape(50.dp)
+                                    )
+                                    .clickable { showServerConfigDialog = true }
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(12.dp)
+                                            .size(8.dp)
                                             .background(
-                                                if (serverHealth.isConnected) BrandEmerald else BrandRose,
+                                                if (serverHealth.isConnected) BrandEmerald else BrandAmber,
                                                 CircleShape
                                             )
                                     )
-                                    Column {
-                                        Text(
-                                            text = if (serverHealth.isConnected) "Authority Online" else "Server Unreachable",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (serverHealth.isConnected) EmeraldDark else RoseDark
+                                    Text(
+                                        text = if (serverHealth.isConnected) "Online" else "Offline",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (serverHealth.isConnected) EmeraldDark else AmberDark
+                                    )
+                                }
+                            }
+                        }
+
+                        // 2. Interactive Server Connection Status Card with 1-Tap Auto-Discover
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (serverHealth.isConnected) EmeraldLight.copy(alpha = 0.6f) else AmberLight.copy(alpha = 0.6f)
+                            ),
+                            border = BorderStroke(
+                                1.dp,
+                                if (serverHealth.isConnected) BrandEmerald.copy(alpha = 0.3f) else BrandAmber.copy(alpha = 0.3f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            if (serverHealth.isConnected) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                                            contentDescription = null,
+                                            tint = if (serverHealth.isConnected) BrandEmerald else BrandAmber,
+                                            modifier = Modifier.size(18.dp)
                                         )
+                                        Column {
+                                            Text(
+                                                text = if (serverHealth.isConnected) "Authority Server Connected" else "Authority Server Unreachable",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (serverHealth.isConnected) EmeraldDark else AmberDark
+                                            )
+                                            Text(
+                                                text = secureStorage.getServerUrl(),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Slate600
+                                            )
+                                        }
+                                    }
+
+                                    IconButton(
+                                        onClick = { showServerConfigDialog = true },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(Icons.Default.Settings, contentDescription = "Config", tint = Slate700, modifier = Modifier.size(16.dp))
+                                    }
+                                }
+
+                                if (!serverHealth.isConnected) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                isAutoScanning = true
+                                                scanStatusMessage = "Scanning Wi-Fi subnet..."
+                                                coroutineScope.launch {
+                                                    val found = ServerHealthChecker.scanAndAutoConnect { status ->
+                                                        scanStatusMessage = status
+                                                    }
+                                                    isAutoScanning = false
+                                                    scanStatusMessage = if (found != null) "Connected: $found" else "Server not found on Wi-Fi subnet. Tap ⚙️ to enter PC IP manually."
+                                                }
+                                            },
+                                            enabled = !isAutoScanning,
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = BrandIndigo),
+                                            modifier = Modifier.weight(1f),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            if (isAutoScanning) {
+                                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("Scanning...", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            } else {
+                                                Icon(Icons.Default.WifiFind, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("1-Tap Auto-Discover on Wi-Fi", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = { showServerConfigDialog = true },
+                                            shape = RoundedCornerShape(10.dp),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Text("Configure IP", fontSize = 11.sp)
+                                        }
+                                    }
+
+                                    scanStatusMessage?.let { msg ->
                                         Text(
-                                            text = secureStorage.getServerUrl(),
+                                            text = msg,
                                             style = MaterialTheme.typography.labelSmall,
                                             color = Slate600
                                         )
                                     }
                                 }
-
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    if (serverHealth.isConnected) {
-                                        Text(
-                                            text = "${serverHealth.latencyMs}ms",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = EmeraldDark,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Icon(
-                                        Icons.Default.Settings,
-                                        contentDescription = "Configure Server IP",
-                                        tint = if (serverHealth.isConnected) EmeraldDark else RoseDark,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
                             }
-                        }
-
-                        // Auto-Sync Ready Status Pill
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .background(IndigoLight, RoundedCornerShape(50.dp))
-                                .border(1.dp, BrandIndigo.copy(alpha = 0.3f), RoundedCornerShape(50.dp))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Box(modifier = Modifier.size(8.dp).background(BrandIndigo, CircleShape))
-                            Text(
-                                text = "Background Auto-Sync: Real-time network listener active",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = IndigoDark,
-                                fontWeight = FontWeight.SemiBold
-                            )
                         }
                     }
                 }
@@ -223,7 +283,7 @@ fun HomeScreen(
                     colors = CardDefaults.cardColors(containerColor = BrandPrimary),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(8.dp, RoundedCornerShape(26.dp), spotColor = BrandPrimary.copy(alpha = 0.35f))
+                        .shadow(6.dp, RoundedCornerShape(26.dp), spotColor = BrandPrimary.copy(alpha = 0.3f))
                         .clickable { onNavigateToCapture() }
                 ) {
                     Box(
@@ -234,7 +294,7 @@ fun HomeScreen(
                                     listOf(BrandPrimary, BrandIndigo, BrandPurple)
                                 )
                             )
-                            .padding(24.dp)
+                            .padding(22.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -243,22 +303,23 @@ fun HomeScreen(
                         ) {
                             Column(
                                 modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = "Controlled Camera",
-                                    style = MaterialTheme.typography.labelMedium,
+                                    text = "CONTROLLED CAMERA",
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = Color.White.copy(alpha = 0.8f),
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
                                 )
                                 Text(
-                                    text = "Capture Evidence",
-                                    style = MaterialTheme.typography.headlineSmall,
+                                    text = "Capture & Sign Geotag",
+                                    style = MaterialTheme.typography.titleLarge,
                                     color = Color.White,
                                     fontWeight = FontWeight.ExtraBold
                                 )
                                 Text(
-                                    text = "1-Tap automatic binding with GPS pincode, server time & ECDSA signature.",
+                                    text = "Direct server authentication with automated offline sync.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.White.copy(alpha = 0.85f)
                                 )
@@ -266,7 +327,7 @@ fun HomeScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .size(62.dp)
+                                    .size(56.dp)
                                     .background(Color.White.copy(alpha = 0.2f), CircleShape)
                                     .border(1.5.dp, Color.White.copy(alpha = 0.4f), CircleShape),
                                 contentAlignment = Alignment.Center
@@ -275,7 +336,7 @@ fun HomeScreen(
                                     Icons.Default.CameraAlt,
                                     contentDescription = null,
                                     tint = Color.White,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
                         }
@@ -283,144 +344,144 @@ fun HomeScreen(
                 }
             }
 
-            // 4. Quick Access Gallery Banner Card
-            item {
-                Card(
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = WhiteBackground),
-                    border = BorderStroke(1.dp, Slate200),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(3.dp, RoundedCornerShape(22.dp))
-                        .clickable { onNavigateToGallery() }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(EmeraldLight, RoundedCornerShape(16.dp))
-                                    .border(1.dp, BrandEmerald.copy(alpha = 0.25f), RoundedCornerShape(16.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(26.dp))
-                            }
-                            Column {
-                                Text(
-                                    text = "Device Evidence Gallery",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Slate900
-                                )
-                                Text(
-                                    text = "$localCount photographs saved locally on phone",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Slate500
-                                )
-                            }
-                        }
-
-                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Slate400)
-                    }
-                }
-            }
-
-            // 5. Quick Stats 3-Card Grid
+            // 4. Quick Stats 3-Card Grid
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // Total Authenticated
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                         modifier = Modifier
                             .weight(1f)
-                            .shadow(2.dp, RoundedCornerShape(20.dp)),
+                            .shadow(2.dp, RoundedCornerShape(18.dp))
+                            .clickable { onNavigateToGallery() },
                         border = BorderStroke(1.dp, Slate200)
                     ) {
                         Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .background(IndigoLight, CircleShape),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(Icons.Default.Verified, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(20.dp))
+                                Text(text = "Verified", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                                Icon(Icons.Default.Verified, contentDescription = null, tint = BrandPrimary, modifier = Modifier.size(16.dp))
                             }
-                            Text(text = "$totalCount", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Slate900)
-                            Text(text = "Total Verified", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            Text(text = "$totalCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Slate900)
+                            Text(text = "Saved on Device", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontSize = 10.sp)
                         }
                     }
 
-                    // Stored Locally
+                    // Local Photos on Phone
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                         modifier = Modifier
                             .weight(1f)
-                            .shadow(2.dp, RoundedCornerShape(20.dp)),
+                            .shadow(2.dp, RoundedCornerShape(18.dp))
+                            .clickable { onNavigateToGallery() },
                         border = BorderStroke(1.dp, Slate200)
                     ) {
                         Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .background(EmeraldLight, CircleShape),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(20.dp))
+                                Text(text = "Gallery", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                                Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = BrandEmerald, modifier = Modifier.size(16.dp))
                             }
-                            Text(text = "$localCount", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Slate900)
-                            Text(text = "Local Photos", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            Text(text = "$localCount", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Slate900)
+                            Text(text = "Local Storage", style = MaterialTheme.typography.labelSmall, color = Slate600, fontSize = 10.sp)
                         }
                     }
 
-                    // Pending Offline Sync
+                    // Pending Offline Queue
                     Card(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = WhiteBackground),
                         modifier = Modifier
                             .weight(1f)
-                            .shadow(2.dp, RoundedCornerShape(20.dp)),
+                            .shadow(2.dp, RoundedCornerShape(18.dp))
+                            .clickable { onNavigateToOffline() },
                         border = BorderStroke(1.dp, Slate200)
                     ) {
                         Column(
-                            modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .background(AmberLight, CircleShape),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Icon(Icons.Default.CloudSync, contentDescription = null, tint = BrandAmber, modifier = Modifier.size(20.dp))
+                                Text(text = "Auto-Sync", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                                Icon(Icons.Default.CloudSync, contentDescription = null, tint = if (pendingCount > 0) BrandAmber else BrandEmerald, modifier = Modifier.size(16.dp))
                             }
-                            Text(text = "$pendingCount", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Slate900)
-                            Text(text = "Pending Sync", style = MaterialTheme.typography.labelSmall, color = Slate500)
+                            Text(text = if (pendingCount > 0) "$pendingCount" else "0", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Slate900)
+                            Text(text = if (pendingCount > 0) "Pending Sync" else "Up to date", style = MaterialTheme.typography.labelSmall, color = if (pendingCount > 0) AmberDark else BrandEmerald, fontSize = 10.sp)
                         }
                     }
                 }
             }
 
-            // 6. Recent Evidence Section Header
+            // 5. Quick Sync Alert Banner if captures are pending
+            if (pendingCount > 0) {
+                item {
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = WhiteBackground),
+                        border = BorderStroke(1.dp, BrandAmber.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(2.dp, RoundedCornerShape(18.dp))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(Icons.Default.CloudQueue, contentDescription = null, tint = BrandAmber, modifier = Modifier.size(24.dp))
+                                Column {
+                                    Text(
+                                        text = "$pendingCount Offline Captures Pending",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Slate900
+                                    )
+                                    Text(
+                                        text = "Automatic background sync active",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Slate500
+                                    )
+                                }
+                            }
+
+                            Button(
+                                onClick = onNavigateToOffline,
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = BrandAmber),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Sync Queue", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 6. Recent Authentications Section Header (Clean labels, NO verification ID text)
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -428,22 +489,24 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Recent Evidence",
+                        text = "Recent Authentications",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Slate900
                     )
-                    Text(
-                        text = "View All ($localCount)",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = BrandPrimary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.clickable { onNavigateToGallery() }
-                    )
+                    if (recentEvidence.isNotEmpty()) {
+                        Text(
+                            text = "View All (${recentEvidence.size}) ↗",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = BrandPrimary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable { onNavigateToGallery() }
+                        )
+                    }
                 }
             }
 
-            // 7. Recent Evidence List Items
+            // 7. Recent Evidence List Items (Showing clean metadata without raw verification IDs)
             if (recentEvidence.isEmpty()) {
                 item {
                     Card(
@@ -461,6 +524,7 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Outlined.Camera, contentDescription = null, tint = Slate400, modifier = Modifier.size(36.dp))
                             Text(text = "No evidence captured yet", style = MaterialTheme.typography.bodySmall, color = Slate500)
+                            Text(text = "Tap 'Capture & Sign Geotag' above to take your first photo", style = MaterialTheme.typography.labelSmall, color = Slate400)
                         }
                     }
                 }
@@ -513,10 +577,10 @@ fun HomeScreen(
                                         maxLines = 1
                                     )
                                     Text(
-                                        text = item.verificationId.take(16) + "...",
+                                        text = if (item.signatureStatus == "VALID") "🛡️ Notarized Evidence • Cryptographically Verified" else "📦 Stored on Device • Auto-Sync Active",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = BrandIndigo,
-                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                        color = if (item.signatureStatus == "VALID") EmeraldDark else AmberDark,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
                                         text = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.US).format(Date(item.trustedTimestamp)),
@@ -541,6 +605,7 @@ fun HomeScreen(
         var inputUrl by remember { mutableStateOf(secureStorage.getServerUrl()) }
         var isTesting by remember { mutableStateOf(false) }
         var testResult by remember { mutableStateOf<ConnectionTestResult?>(null) }
+        val deviceIp = remember { ServerHealthChecker.getLocalDeviceIp() }
 
         AlertDialog(
             onDismissRequest = { showServerConfigDialog = false },
@@ -558,7 +623,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "When testing on a physical mobile phone, enter your PC's Wi-Fi LAN IP address (e.g. http://192.168.1.10:8080):",
+                        text = "When running on a mobile phone on Wi-Fi, enter your PC's IP address (e.g. http://192.168.1.15:8080):",
                         style = MaterialTheme.typography.bodySmall,
                         color = Slate600
                     )
@@ -572,33 +637,34 @@ fun HomeScreen(
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    // Quick Presets
-                    Text(text = "Quick Presets:", style = MaterialTheme.typography.labelSmall, color = Slate500, fontWeight = FontWeight.Bold)
-                    Row(
+                    // 1-Tap Wi-Fi Auto-Scan Button
+                    Button(
+                        onClick = {
+                            isTesting = true
+                            testResult = null
+                            coroutineScope.launch {
+                                val discovered = ServerHealthChecker.scanAndAutoConnect()
+                                if (discovered != null) {
+                                    inputUrl = discovered
+                                    testResult = ConnectionTestResult(true, 50, "Discovered & Connected: $discovered")
+                                } else {
+                                    testResult = ConnectionTestResult(false, 0, "No server responded on local subnet.")
+                                }
+                                isTesting = false
+                            }
+                        },
+                        enabled = !isTesting,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandIndigo)
                     ) {
-                        OutlinedButton(
-                            onClick = { inputUrl = "http://10.0.2.2:8080" },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                        ) {
-                            Text("Emulator (10.0.2.2)", fontSize = 10.sp)
-                        }
-
-                        OutlinedButton(
-                            onClick = { inputUrl = "http://127.0.0.1:8080" },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                        ) {
-                            Text("Localhost (127.0.0.1)", fontSize = 10.sp)
-                        }
+                        Icon(Icons.Default.WifiFind, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("AUTO-SCAN LOCAL WI-FI SUBNET")
                     }
 
                     // Test Connection Button
-                    Button(
+                    OutlinedButton(
                         onClick = {
                             isTesting = true
                             testResult = null
@@ -610,11 +676,10 @@ fun HomeScreen(
                         },
                         enabled = !isTesting && inputUrl.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandIndigo)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         if (isTesting) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = BrandPrimary, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Pinging Server...")
                         } else {
@@ -622,6 +687,16 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("TEST CONNECTION NOW")
                         }
+                    }
+
+                    // Quick Presets
+                    if (deviceIp != null) {
+                        val subnet = deviceIp.substringBeforeLast(".") + ".1"
+                        Text(
+                            text = "Detected Phone IP: $deviceIp (Subnet $subnet)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Slate500
+                        )
                     }
 
                     // Test Result Banner

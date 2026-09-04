@@ -300,8 +300,8 @@ export const ThirdPartyDemo: React.FC = () => {
                         <span className="text-emerald-950 font-bold">{collegeVerificationResult.trustedTimestamp}</span>
                       </div>
                       <div>
-                        <span className="text-emerald-700 block font-semibold">🔑 Verification ID:</span>
-                        <span className="text-emerald-950 font-mono font-bold">{collegeVerificationResult.verificationId}</span>
+                        <span className="text-emerald-700 block font-semibold">🛡️ Evidence Status:</span>
+                        <span className="text-emerald-950 font-bold">AUTHENTIC &amp; NOTARIZED</span>
                       </div>
                     </div>
                   </div>
@@ -437,8 +437,8 @@ export const ThirdPartyDemo: React.FC = () => {
                         <span className="text-emerald-950 font-bold">{govtVerificationResult.trustedTimestamp}</span>
                       </div>
                       <div>
-                        <span className="text-emerald-700 block font-semibold">🔑 Verification ID:</span>
-                        <span className="text-emerald-950 font-mono font-bold">{govtVerificationResult.verificationId}</span>
+                        <span className="text-emerald-700 block font-semibold">🛡️ Evidence Status:</span>
+                        <span className="text-emerald-950 font-bold">AUTHENTIC &amp; NOTARIZED</span>
                       </div>
                     </div>
                   </div>

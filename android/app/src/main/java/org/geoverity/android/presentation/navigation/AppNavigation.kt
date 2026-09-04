@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import org.geoverity.android.GeoVerityApp
 import org.geoverity.android.presentation.screens.about.AboutScreen
 import org.geoverity.android.presentation.screens.capture.AuthenticationResultScreen
 import org.geoverity.android.presentation.screens.capture.CapturePreviewScreen
@@ -39,7 +40,8 @@ import org.geoverity.android.presentation.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(navController: NavHostController) {
-    var showMoreSheet by remember { mutableStateOf(false) }
+    val db = GeoVerityApp.instance.database
+    val pendingCount by db.offlineCaptureDao().getPendingCount().collectAsState(initial = 0)
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -48,7 +50,8 @@ fun AppNavigation(navController: NavHostController) {
         Screen.Home.route,
         Screen.SecureCapture.route,
         Screen.Gallery.route,
-        Screen.VerifyImage.route
+        Screen.OfflineCaptures.route,
+        Screen.Settings.route
     )
 
     Scaffold(
@@ -62,7 +65,13 @@ fun AppNavigation(navController: NavHostController) {
                     // 1. Home
                     NavigationBarItem(
                         selected = currentRoute == Screen.Home.route,
-                        onClick = { navController.navigate(Screen.Home.route) },
+                        onClick = {
+                            if (currentRoute != Screen.Home.route) {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(Screen.Home.route) { inclusive = true }
+                                }
+                            }
+                        },
                         icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                         label = { Text("Home", fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
@@ -75,7 +84,11 @@ fun AppNavigation(navController: NavHostController) {
                     // 2. Secure Capture
                     NavigationBarItem(
                         selected = currentRoute == Screen.SecureCapture.route,
-                        onClick = { navController.navigate(Screen.SecureCapture.route) },
+                        onClick = {
+                            if (currentRoute != Screen.SecureCapture.route) {
+                                navController.navigate(Screen.SecureCapture.route)
+                            }
+                        },
                         icon = { Icon(Icons.Default.CameraAlt, contentDescription = "Capture") },
                         label = { Text("Capture", fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
@@ -88,7 +101,11 @@ fun AppNavigation(navController: NavHostController) {
                     // 3. Local Gallery
                     NavigationBarItem(
                         selected = currentRoute == Screen.Gallery.route,
-                        onClick = { navController.navigate(Screen.Gallery.route) },
+                        onClick = {
+                            if (currentRoute != Screen.Gallery.route) {
+                                navController.navigate(Screen.Gallery.route)
+                            }
+                        },
                         icon = { Icon(Icons.Outlined.Collections, contentDescription = "Gallery") },
                         label = { Text("Gallery", fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
@@ -98,12 +115,28 @@ fun AppNavigation(navController: NavHostController) {
                         )
                     )
 
-                    // 4. Verify Image
+                    // 4. Auto-Sync Queue (with live badge!)
                     NavigationBarItem(
-                        selected = currentRoute == Screen.VerifyImage.route,
-                        onClick = { navController.navigate(Screen.VerifyImage.route) },
-                        icon = { Icon(Icons.Default.Verified, contentDescription = "Verify") },
-                        label = { Text("Verify", fontWeight = FontWeight.SemiBold) },
+                        selected = currentRoute == Screen.OfflineCaptures.route,
+                        onClick = {
+                            if (currentRoute != Screen.OfflineCaptures.route) {
+                                navController.navigate(Screen.OfflineCaptures.route)
+                            }
+                        },
+                        icon = {
+                            BadgedBox(
+                                badge = {
+                                    if (pendingCount > 0) {
+                                        Badge(containerColor = BrandAmber) {
+                                            Text("$pendingCount", color = Color.White)
+                                        }
+                                    }
+                                }
+                            ) {
+                                Icon(Icons.Default.CloudSync, contentDescription = "Auto-Sync")
+                            }
+                        },
+                        label = { Text("Auto-Sync", fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = BrandPrimary,
                             selectedTextColor = BrandPrimary,
@@ -111,12 +144,16 @@ fun AppNavigation(navController: NavHostController) {
                         )
                     )
 
-                    // 5. More
+                    // 5. Security & Settings
                     NavigationBarItem(
-                        selected = showMoreSheet,
-                        onClick = { showMoreSheet = true },
-                        icon = { Icon(Icons.Default.MoreHoriz, contentDescription = "More") },
-                        label = { Text("More", fontWeight = FontWeight.SemiBold) },
+                        selected = currentRoute == Screen.Settings.route,
+                        onClick = {
+                            if (currentRoute != Screen.Settings.route) {
+                                navController.navigate(Screen.Settings.route)
+                            }
+                        },
+                        icon = { Icon(Icons.Default.Shield, contentDescription = "Security") },
+                        label = { Text("Security", fontWeight = FontWeight.SemiBold) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = BrandPrimary,
                             selectedTextColor = BrandPrimary,
@@ -259,88 +296,5 @@ fun AppNavigation(navController: NavHostController) {
                 )
             }
         }
-
-        // More Menu Bottom Sheet
-        if (showMoreSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showMoreSheet = false },
-                containerColor = WhiteBackground,
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Text(
-                        text = "Application Menu",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Slate900
-                    )
-
-                    MoreMenuItem("Local Image Gallery", Icons.Outlined.Collections, IndigoLight, BrandIndigo) {
-                        showMoreSheet = false
-                        navController.navigate(Screen.Gallery.route)
-                    }
-
-                    MoreMenuItem("Offline Captures & Auto-Sync", Icons.Outlined.CloudQueue, AmberLight, BrandAmber) {
-                        showMoreSheet = false
-                        navController.navigate(Screen.OfflineCaptures.route)
-                    }
-
-                    MoreMenuItem("Evidence History Registry", Icons.Outlined.History, IndigoLight, BrandIndigo) {
-                        showMoreSheet = false
-                        navController.navigate(Screen.EvidenceHistory.route)
-                    }
-
-                    MoreMenuItem("Share Evidence Guide", Icons.Outlined.Share, EmeraldLight, BrandEmerald) {
-                        showMoreSheet = false
-                        navController.navigate(Screen.ShareEvidence.route)
-                    }
-
-                    MoreMenuItem("Settings & Server URL", Icons.Outlined.Settings, Slate100, Slate700) {
-                        showMoreSheet = false
-                        navController.navigate(Screen.Settings.route)
-                    }
-
-                    MoreMenuItem("About GeoVerity", Icons.Outlined.Info, IndigoLight, BrandPrimary) {
-                        showMoreSheet = false
-                        navController.navigate(Screen.About.route)
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MoreMenuItem(
-    title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    bgColor: Color,
-    tintColor: Color,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(42.dp)
-                .background(bgColor, RoundedCornerShape(14.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = tintColor, modifier = Modifier.size(22.dp))
-        }
-        Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = Slate900)
     }
 }

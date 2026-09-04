@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -60,7 +61,7 @@ fun VerifyImageScreen(
                 title = { Text("Third-Party Verification", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = WhiteBackground)
@@ -164,7 +165,7 @@ fun VerifyImageScreen(
                 }
             }
 
-            // 3. Result Card
+            // 3. Result Card (Clean, without raw verification ID text)
             verificationResult?.let { res ->
                 val isAuthentic = res.status == "AUTHENTIC"
 
@@ -201,12 +202,12 @@ fun VerifyImageScreen(
                         if (isAuthentic) {
                             Text(text = "Location: ${res.location}", style = MaterialTheme.typography.bodyMedium, color = EmeraldDark)
                             Text(text = "GPS: ${res.gps}", style = MaterialTheme.typography.bodyMedium, color = EmeraldDark)
-                            Text(text = "Verification ID: ${res.verificationId}", style = MaterialTheme.typography.labelSmall, color = EmeraldDark)
-                            Text(text = "Signature: VALID (ECDSA P-256)", style = MaterialTheme.typography.labelSmall, color = EmeraldDark)
+                            Text(text = "Attestation: Validated by Server Authority", style = MaterialTheme.typography.labelSmall, color = EmeraldDark, fontWeight = FontWeight.Bold)
+                            Text(text = "Digital Signature: VALID (ECDSA NIST P-256)", style = MaterialTheme.typography.labelSmall, color = EmeraldDark)
                             Text(text = "Composite SHA-256: MATCHED", style = MaterialTheme.typography.labelSmall, color = EmeraldDark)
                         } else {
                             Text(
-                                text = res.failureReason ?: "Hash mismatch or unregistered Verification ID.",
+                                text = res.failureReason ?: "Cryptographic mismatch or image alteration detected.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = RoseDark
                             )

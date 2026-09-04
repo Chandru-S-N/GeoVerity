@@ -53,14 +53,14 @@ fun AuthenticationResultScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "AUTHENTICATED",
+                text = "AUTHENTICATED & STORED",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = Slate900
             )
 
             Text(
-                text = "Digital photographic evidence cryptographically bound and signed by server authority.",
+                text = "Digital photographic evidence cryptographically bound, signed by server authority, and saved to your device gallery.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Slate500,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -69,7 +69,7 @@ fun AuthenticationResultScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Info Card
+            // Info Card (Clean, without raw verification ID text)
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = WhiteBackground),
@@ -81,8 +81,8 @@ fun AuthenticationResultScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text(text = "Verification ID", style = MaterialTheme.typography.bodyMedium, color = Slate500)
-                        Text(text = verificationId.take(16) + "...", style = MaterialTheme.typography.labelSmall, color = BrandIndigo, fontWeight = FontWeight.Bold)
+                        Text(text = "Security Attestation", style = MaterialTheme.typography.bodyMedium, color = Slate500)
+                        Text(text = "AUTHENTIC & NOTARIZED", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontWeight = FontWeight.Bold)
                     }
 
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -93,6 +93,11 @@ fun AuthenticationResultScreen(
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         Text(text = "Composite SHA-256", style = MaterialTheme.typography.bodyMedium, color = Slate500)
                         Text(text = "MATCHED", style = MaterialTheme.typography.labelSmall, color = BrandEmerald, fontWeight = FontWeight.Bold)
+                    }
+
+                    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        Text(text = "Local Device Storage", style = MaterialTheme.typography.bodyMedium, color = Slate500)
+                        Text(text = "SAVED TO GALLERY", style = MaterialTheme.typography.labelSmall, color = BrandIndigo, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -108,7 +113,7 @@ fun AuthenticationResultScreen(
                     .fillMaxWidth()
                     .height(56.dp)
             ) {
-                Text(text = "VIEW EVIDENCE HISTORY", fontWeight = FontWeight.Bold)
+                Text(text = "VIEW EVIDENCE GALLERY", fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(12.dp))

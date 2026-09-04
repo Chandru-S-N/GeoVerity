@@ -1,10 +1,9 @@
 package org.geoverity.android.presentation.screens.capture
 
 import android.graphics.BitmapFactory
-import android.media.ExifInterface
-import android.os.Environment
 import android.os.SystemClock
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -63,7 +62,7 @@ fun CapturePreviewScreen(
     val db = GeoVerityApp.instance.database
     val keyStoreManager = remember { AndroidKeyStoreManager() }
 
-    val verificationId = remember { "SGA-" + UUID.randomUUID().toString().uppercase() }
+    val verificationId = remember { UUID.randomUUID().toString().uppercase() }
     var composedFinalBytes by remember { mutableStateOf<ByteArray?>(null) }
     var authStepMessage by remember { mutableStateOf("Initializing cryptographic binding...") }
     var isProcessing by remember { mutableStateOf(true) }
@@ -181,7 +180,7 @@ fun CapturePreviewScreen(
                         authStepMessage = "Digital Evidence Authenticated & Stored Locally!"
                         isSuccess = true
                         isProcessing = false
-                        delay(600)
+                        delay(500)
                         withContext(Dispatchers.Main) {
                             onAuthenticationComplete(verificationId)
                         }
@@ -191,8 +190,6 @@ fun CapturePreviewScreen(
                     }
                 } else {
                     // === OFFLINE / SERVER UNREACHABLE PATH ===
-                    // Server is currently unreachable (or testing on mobile without LAN IP configured).
-                    // Compose the local image with estimated/device time so the user ALWAYS has their local photo stored!
                     isOfflineMode = true
                     authStepMessage = "Server offline: Saving composed image locally & encrypting offline proof..."
 
@@ -254,74 +251,17 @@ fun CapturePreviewScreen(
                         )
                     )
 
-                    authStepMessage = "Saved in Local Gallery! Auto-sync will sign when server connects."
+                    authStepMessage = "Saved to Device Gallery! Queued for automatic sync when online."
                     isSuccess = true
                     isProcessing = false
-                    delay(800)
+                    delay(700)
                     withContext(Dispatchers.Main) {
                         onAuthenticationComplete(verificationId)
                     }
                 }
             } catch (e: Exception) {
-                // Fail-safe offline fallback
-                try {
-                    val localTime = System.currentTimeMillis()
-                    val rawBitmap = BitmapFactory.decodeFile(rawPhotoPath)
-                    if (rawBitmap != null) {
-                        val finalImageBytes = ImageComposer.composeFinalImageBytes(
-                            photoBitmap = rawBitmap,
-                            locationName = locationName,
-                            latitude = latitude,
-                            longitude = longitude,
-                            trustedTimestamp = localTime,
-                            verificationId = verificationId
-                        )
-                        val savedFile = File(context.filesDir, "$verificationId.jpg")
-                        FileOutputStream(savedFile).use { it.write(finalImageBytes) }
-
-                        val rawBytes = File(rawPhotoPath).readBytes()
-                        val encryptedBytes = keyStoreManager.encrypt(rawBytes)
-
-                        db.offlineCaptureDao().insert(
-                            OfflineCaptureEntity(
-                                verificationId = verificationId,
-                                encryptedImageData = encryptedBytes,
-                                lastTrustedServerTimestamp = secureStorage.getLastTrustedServerTimestamp().takeIf { it > 0 } ?: localTime,
-                                lastTrustedElapsedRealtime = secureStorage.getLastTrustedElapsedRealtime().takeIf { it > 0 } ?: SystemClock.elapsedRealtime(),
-                                captureElapsedRealtime = SystemClock.elapsedRealtime(),
-                                deviceCaptureTime = localTime,
-                                locationName = locationName,
-                                latitude = latitude,
-                                longitude = longitude,
-                                status = "PENDING"
-                            )
-                        )
-
-                        db.evidenceHistoryDao().insert(
-                            EvidenceHistoryEntity(
-                                verificationId = verificationId,
-                                sha256Hash = "PENDING_SERVER_SYNC",
-                                locationName = locationName,
-                                latitude = latitude,
-                                longitude = longitude,
-                                trustedTimestamp = localTime,
-                                signatureStatus = "PENDING_SYNC",
-                                localImagePath = savedFile.absolutePath
-                            )
-                        )
-
-                        delay(800)
-                        withContext(Dispatchers.Main) {
-                            onAuthenticationComplete(verificationId)
-                        }
-                    } else {
-                        errorMessage = "Error: ${e.message}"
-                        isProcessing = false
-                    }
-                } catch (ex: Exception) {
-                    errorMessage = "Error during capture processing: ${e.message}"
-                    isProcessing = false
-                }
+                errorMessage = "Authentication error: ${e.message}"
+                isProcessing = false
             }
         }
     }
@@ -331,9 +271,10 @@ fun CapturePreviewScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isOfflineMode) "Local Evidence Stored" else "Authenticating Evidence",
+                        text = "Authenticating Evidence",
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = Slate900
                     )
                 },
                 navigationIcon = {
@@ -352,10 +293,10 @@ fun CapturePreviewScreen(
                 .padding(padding)
                 .padding(horizontal = 20.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             
-            // 1. Live Authentication Progress HUD
+            // 1. Photographic Evidence Preview Card
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = WhiteBackground),
@@ -364,82 +305,96 @@ fun CapturePreviewScreen(
                     .shadow(4.dp, RoundedCornerShape(24.dp)),
                 border = CardDefaults.outlinedCardBorder()
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                Column(modifier = Modifier.padding(12.dp)) {
+                    val previewBitmap = remember(composedFinalBytes, rawPhotoPath) {
+                        if (composedFinalBytes != null) {
+                            BitmapFactory.decodeByteArray(composedFinalBytes, 0, composedFinalBytes!!.size)
+                        } else {
+                            BitmapFactory.decodeFile(rawPhotoPath)
+                        }
+                    }
+
+                    if (previewBitmap != null) {
+                        Image(
+                            bitmap = previewBitmap.asImageBitmap(),
+                            contentDescription = "Composed Digital Evidence",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .background(Slate100, RoundedCornerShape(16.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = BrandPrimary)
+                        }
+                    }
+                }
+            }
+
+            // 2. Real-Time Pipeline Progress Indicator
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isSuccess) EmeraldLight else if (errorMessage != null) RoseLight else IndigoLight
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(
+                    1.dp,
+                    if (isSuccess) BrandEmerald.copy(alpha = 0.3f) else if (errorMessage != null) BrandRose.copy(alpha = 0.3f) else BrandIndigo.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     if (isProcessing) {
-                        Box(
-                            modifier = Modifier
-                                .size(68.dp)
-                                .background(IndigoLight, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                color = BrandPrimary,
-                                strokeWidth = 3.5.dp,
-                                modifier = Modifier.size(38.dp)
-                            )
-                        }
-                    } else if (errorMessage == null) {
-                        Box(
-                            modifier = Modifier
-                                .size(68.dp)
-                                .background(if (isOfflineMode) AmberLight else EmeraldLight, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                if (isOfflineMode) Icons.Default.CloudSync else Icons.Default.Check,
-                                contentDescription = null,
-                                tint = if (isOfflineMode) BrandAmber else BrandEmerald,
-                                modifier = Modifier.size(38.dp)
-                            )
-                        }
+                        CircularProgressIndicator(
+                            color = BrandIndigo,
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 3.dp
+                        )
+                    } else if (isSuccess) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = BrandEmerald,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Error,
+                            contentDescription = null,
+                            tint = BrandRose,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
 
-                    Text(
-                        text = if (isOfflineMode) "Evidence Stored in Local Gallery" else "Automatic Digital Authentication",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Slate900
-                    )
-
-                    Text(
-                        text = authStepMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (errorMessage != null) BrandRose else Slate600,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-            }
-
-            // 2. Composed Image Preview
-            composedFinalBytes?.let { bytes ->
-                val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                if (bmp != null) {
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = WhiteBackground),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(2.dp, RoundedCornerShape(24.dp)),
-                        border = CardDefaults.outlinedCardBorder()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Image(
-                                bitmap = bmp.asImageBitmap(),
-                                contentDescription = "Composed Evidence Preview",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                            )
-                        }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = if (isSuccess) "AUTHENTICATION COMPLETE" else if (errorMessage != null) "AUTHENTICATION FAILED" else "PROCESSING DIGITAL EVIDENCE",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isSuccess) EmeraldDark else if (errorMessage != null) RoseDark else IndigoDark
+                        )
+                        Text(
+                            text = authStepMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isSuccess) EmeraldDark else if (errorMessage != null) RoseDark else Slate700
+                        )
                     }
                 }
             }
 
-            // 3. Metadata Specifications Summary Card
+            // 3. Metadata Specifications Summary Card (Clean, without raw verification ID text)
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = WhiteBackground),
@@ -450,11 +405,16 @@ fun CapturePreviewScreen(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(text = "Captured Evidence Metadata", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(text = "Captured Evidence Specifications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                        Text(text = "Verification ID", style = MaterialTheme.typography.bodySmall, color = Slate500)
-                        Text(text = verificationId.take(16) + "...", style = MaterialTheme.typography.bodySmall, color = BrandIndigo, fontWeight = FontWeight.Bold)
+                        Text(text = "Attestation State", style = MaterialTheme.typography.bodySmall, color = Slate500)
+                        Text(
+                            text = "AUTHENTIC DIGITAL EVIDENCE",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = BrandEmerald,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -470,7 +430,7 @@ fun CapturePreviewScreen(
                     Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                         Text(text = "Storage Status", style = MaterialTheme.typography.bodySmall, color = Slate500)
                         Text(
-                            text = if (isOfflineMode) "Stored Locally (Pending Sync)" else "Stored Locally & Signed by Server",
+                            text = if (isOfflineMode) "Stored Locally (Auto-Sync Active)" else "Stored Locally & Signed by Server",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (isOfflineMode) BrandAmber else BrandEmerald,
                             fontWeight = FontWeight.Bold

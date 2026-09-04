@@ -98,11 +98,11 @@ export const SimulatorLab: React.FC = () => {
 
     ctx.fillStyle = '#818CF8';
     ctx.font = 'bold 13px Inter, sans-serif';
-    ctx.fillText(`Verification ID: ${verificationId}`, 24, 665);
+    ctx.fillText(`🛡️ Authenticated Digital Evidence`, 24, 665);
 
     ctx.fillStyle = '#64748B';
     ctx.font = '11px monospace';
-    ctx.fillText(`Device: ${deviceId}`, 24, 692);
+    ctx.fillText(`Authority Sealed • Device: ${deviceId}`, 24, 692);
 
     // Generate real QR code onto canvas
     const qrDataUrl = await QRCode.toDataURL(verificationId, {

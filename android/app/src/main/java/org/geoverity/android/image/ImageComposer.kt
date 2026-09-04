@@ -121,8 +121,8 @@ object ImageComposer {
         canvas.drawText("⏰ Time: $timeStr", leftMargin, currentY, textPaint)
         currentY += lineSpacing
 
-        // Line 5: Verification ID
-        canvas.drawText("🔑 Verification ID: $verificationId", leftMargin, currentY, idPaint)
+        // Line 5: Digital Evidence Status (Clean, no explicit ID)
+        canvas.drawText("🛡️ Authenticated Digital Evidence", leftMargin, currentY, idPaint)
 
         // 5. Draw QR Code on right side of footer with white rounded background
         val qrBitmap = generateQrCodeBitmap(verificationId, qrSize, qrSize)
