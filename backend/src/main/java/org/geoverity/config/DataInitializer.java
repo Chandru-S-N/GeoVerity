@@ -24,10 +24,11 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         if (apiClientRepository.count() == 0) {
             log.info("Seeding initial demo API client into database...");
+            String demoRawKey = "gv_live_demo_key_984128001";
             ApiClient defaultClient = ApiClient.builder()
                     .id(UUID.fromString("a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"))
                     .clientName("GeoVerity Official Android App")
-                    .apiKeyHash("c759a224a9a084c5689da6d4002636c0a0c9a41df08f61546ea48d88e0f3fe67")
+                    .apiKeyHash(org.geoverity.crypto.HashUtils.sha256Hex(demoRawKey))
                     .apiKeyPrefix("gv_live_demo")
                     .permissions("CAPTURE,VERIFY,TIME_TOKEN")
                     .status("ACTIVE")

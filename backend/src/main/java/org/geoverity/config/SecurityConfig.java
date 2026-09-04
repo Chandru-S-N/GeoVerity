@@ -49,8 +49,8 @@ public class SecurityConfig {
                 // 3. Admin endpoints require ROLE_ADMIN
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-                // 4. Capture & Time Token endpoints require authenticated API Key (or Admin)
-                .requestMatchers("/api/v1/time/**", "/api/v1/capture/**", "/api/v1/sync/**").hasAnyRole("CLIENT", "ADMIN")
+                // 4. Capture, Time Token, and Offline Sync endpoints (Zero User Login architecture)
+                .requestMatchers("/api/v1/time/**", "/api/v1/capture/**", "/api/v1/sync/**").permitAll()
 
                 .anyRequest().authenticated()
             )
