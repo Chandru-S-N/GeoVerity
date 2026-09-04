@@ -33,8 +33,8 @@ class SecureStorage(context: Context) {
 
     fun getServerUrl(): String {
         val saved = sharedPreferences.getString(KEY_SERVER_URL, null)
-        if (saved.isNullOrBlank() || saved == "http://10.0.2.2:8080" || saved == "http://localhost:8080") {
-            return "https://headline-nature-radical-phenomenon.trycloudflare.com"
+        if (saved.isNullOrBlank() || saved.contains("10.0.2.2") || saved.contains("localhost") || saved.contains("trycloudflare.com")) {
+            return "https://geoverity-backend.onrender.com"
         }
         return saved
     }
