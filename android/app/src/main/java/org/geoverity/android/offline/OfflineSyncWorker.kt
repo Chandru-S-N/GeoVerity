@@ -15,6 +15,7 @@ import org.geoverity.android.data.network.CanonicalMetadataRequestDto
 import org.geoverity.android.data.network.OfflineSyncRequestDto
 import org.geoverity.android.data.network.RetrofitClient
 import org.geoverity.android.image.ImageComposer
+import org.geoverity.android.image.ImageSaver
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -113,18 +114,19 @@ class OfflineSyncWorker(
 
                 val response = api.authenticateOfflineSync(apiKey, syncRequest)
                 if (response.isSuccessful && response.body()?.status == "AUTHENTICATED") {
-                    // Save final authenticated JPEG to local device storage for Gallery display
+                    // Save final authenticated JPEG to local device storage and phone Gallery
                     val savedFile = File(context.filesDir, "${capture.verificationId}.jpg")
                     FileOutputStream(savedFile).use { it.write(finalImageBytes) }
 
-                    // Inject metadata into EXIF
-                    try {
-                        val exif = ExifInterface(savedFile.absolutePath)
-                        exif.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, "GeoVerity Authenticated Digital Evidence: ${capture.verificationId}")
-                        exif.setAttribute(ExifInterface.TAG_USER_COMMENT, "GEOVERITY_ID:${capture.verificationId}; LOCATION:${capture.locationName}; TRUSTED_EPOCH:$authoritativeTimestamp")
-                        exif.setAttribute(ExifInterface.TAG_DATETIME, SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).format(Date(authoritativeTimestamp)))
-                        exif.saveAttributes()
-                    } catch (e: Exception) {}
+                    ImageSaver.saveToGallery(
+                        context = context,
+                        imageBytes = finalImageBytes,
+                        verificationId = capture.verificationId,
+                        locationName = capture.locationName,
+                        latitude = capture.latitude,
+                        longitude = capture.longitude,
+                        trustedTimestamp = authoritativeTimestamp
+                    )
 
                     // Persist to Evidence History and Gallery
                     db.evidenceHistoryDao().insert(

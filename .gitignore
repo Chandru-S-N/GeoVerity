@@ -53,3 +53,6 @@ secrets/
 tmp/
 temp/
 scratch/
+backend/data/
+*.mv.db
+

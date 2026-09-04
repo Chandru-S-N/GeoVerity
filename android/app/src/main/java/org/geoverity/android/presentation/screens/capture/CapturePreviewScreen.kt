@@ -40,6 +40,7 @@ import org.geoverity.android.data.db.EvidenceHistoryEntity
 import org.geoverity.android.data.db.OfflineCaptureEntity
 import org.geoverity.android.data.network.*
 import org.geoverity.android.image.ImageComposer
+import org.geoverity.android.image.ImageSaver
 import org.geoverity.android.presentation.theme.*
 import java.io.File
 import java.io.FileOutputStream
@@ -147,30 +148,23 @@ fun CapturePreviewScreen(
                     )
 
                     if (captureRes.isSuccessful && captureRes.body()?.status == "AUTHENTICATED") {
-                        // Step 6: Save original authenticated image to local device storage (FilesDir + Pictures)
+                        // Step 6: Save original authenticated image to local device storage & phone Gallery
                         authStepMessage = "Storing authenticated JPEG in Local Device Gallery..."
                         val savedFile = File(context.filesDir, "$verificationId.jpg")
                         FileOutputStream(savedFile).use { it.write(finalImageBytes) }
 
-                        // Secondary backup in External Pictures
-                        try {
-                            val picturesDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
-                            if (picturesDir != null) {
-                                val externalFile = File(picturesDir, "$verificationId.jpg")
-                                FileOutputStream(externalFile).use { it.write(finalImageBytes) }
-                            }
-                        } catch (e: Exception) {}
+                        // Save to Public MediaStore (Pictures/GeoVerity)
+                        ImageSaver.saveToGallery(
+                            context = context,
+                            imageBytes = finalImageBytes,
+                            verificationId = verificationId,
+                            locationName = locationName,
+                            latitude = latitude,
+                            longitude = longitude,
+                            trustedTimestamp = trustedServerTime
+                        )
 
-                        // Step 7: Inject Verification ID into standard EXIF headers
-                        try {
-                            val exif = ExifInterface(savedFile.absolutePath)
-                            exif.setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, "GeoVerity Authenticated Digital Evidence: $verificationId")
-                            exif.setAttribute(ExifInterface.TAG_USER_COMMENT, "GEOVERITY_ID:$verificationId; LOCATION:$locationName; TRUSTED_EPOCH:$trustedServerTime")
-                            exif.setAttribute(ExifInterface.TAG_DATETIME, SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).format(Date(trustedServerTime)))
-                            exif.saveAttributes()
-                        } catch (e: Exception) {}
-
-                        // Step 8: Persist to Room Database for immediate local gallery display
+                        // Step 7: Persist to Room Database for immediate local gallery display
                         db.evidenceHistoryDao().insert(
                             EvidenceHistoryEntity(
                                 verificationId = verificationId,
@@ -213,9 +207,19 @@ fun CapturePreviewScreen(
                     )
                     composedFinalBytes = finalImageBytes
 
-                    // 1. Save composed image immediately to local storage
+                    // 1. Save composed image immediately to local storage & Gallery
                     val savedFile = File(context.filesDir, "$verificationId.jpg")
                     FileOutputStream(savedFile).use { it.write(finalImageBytes) }
+
+                    ImageSaver.saveToGallery(
+                        context = context,
+                        imageBytes = finalImageBytes,
+                        verificationId = verificationId,
+                        locationName = locationName,
+                        latitude = latitude,
+                        longitude = longitude,
+                        trustedTimestamp = localTime
+                    )
 
                     // 2. Encrypt raw photo bytes with Keystore AES-256-GCM for tamper-proof offline queue
                     val rawBytes = File(rawPhotoPath).readBytes()
