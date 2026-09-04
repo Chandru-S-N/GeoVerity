@@ -31,7 +31,13 @@ class SecureStorage(context: Context) {
         sharedPreferences.edit().putString(KEY_API_KEY, apiKey.trim()).apply()
     }
 
-    fun getServerUrl(): String = sharedPreferences.getString(KEY_SERVER_URL, "http://10.0.2.2:8080") ?: "http://10.0.2.2:8080"
+    fun getServerUrl(): String {
+        val saved = sharedPreferences.getString(KEY_SERVER_URL, null)
+        if (saved.isNullOrBlank() || saved == "http://10.0.2.2:8080" || saved == "http://localhost:8080") {
+            return "https://headline-nature-radical-phenomenon.trycloudflare.com"
+        }
+        return saved
+    }
 
     fun setServerUrl(url: String) {
         sharedPreferences.edit().putString(KEY_SERVER_URL, url.trim()).apply()
