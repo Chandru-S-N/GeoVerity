@@ -55,4 +55,5 @@ temp/
 scratch/
 backend/data/
 *.mv.db
+cloudflared.exe
 
